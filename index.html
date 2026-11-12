@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ORA vs Civic">
+<meta name="theme-color" content="#07070d">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.png">
+<title>ORA 5 vs Civic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070d; --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.16);
+  --tx:#f4f4fb; --tx2:rgba(244,244,251,.62); --tx3:rgba(244,244,251,.38);
+  --ora1:#8b7bff; --green:#34d399; --red:#fb7185; --orange:#ff6a2b; --r:22px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:Inter,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;overflow-x:hidden}
+.bgfx{position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(60% 40% at 15% 0%,rgba(91,75,245,.38),transparent 70%),
+  radial-gradient(50% 35% at 100% 30%,rgba(52,211,153,.12),transparent 70%),
+  radial-gradient(70% 40% at 50% 110%,rgba(91,75,245,.22),transparent 70%)}
+.wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 120px)}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.hello{font-size:13px;color:var(--tx2)} .hello b{color:var(--tx)}
+.pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
+.pill.ok i{background:var(--green);box-shadow:0 0 8px var(--green)}
+h1{font-family:Oswald,Inter,sans-serif;font-weight:600;font-size:34px;line-height:1.02;margin:10px 0 18px}
+h1 span{color:var(--orange)}
+.glass{background:linear-gradient(160deg,rgba(255,255,255,.085),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:var(--r);
+  backdrop-filter:blur(24px) saturate(140%);-webkit-backdrop-filter:blur(24px) saturate(140%);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 40px -20px rgba(0,0,0,.6)}
+.hero{padding:18px;position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(52,211,153,.35),transparent 65%);pointer-events:none}
+.lbl{font-size:12px;color:var(--tx2);font-weight:500}
+.big{font-size:40px;font-weight:800;letter-spacing:-1.2px;margin:6px 0 4px}
+.sub{font-size:13px;color:var(--tx2);line-height:1.45}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px}
+.chip.g{background:rgba(52,211,153,.14);color:var(--green)} .chip.r{background:rgba(251,113,133,.14);color:var(--red)} .chip.v{background:rgba(139,123,255,.18);color:#b9b0ff}
+.prog{height:8px;border-radius:99px;background:rgba(255,255,255,.07);margin:14px 0 8px;position:relative;overflow:visible}
+.prog .f{height:100%;border-radius:99px;background:linear-gradient(90deg,#1e9e74,#34d399);max-width:100%}
+.prog .mk{position:absolute;top:-4px;width:2px;height:16px;background:#fff;border-radius:2px;opacity:.7}
+.progl{display:flex;justify-content:space-between;font-size:11.5px;color:var(--tx3)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.kpi{padding:14px}
+.kpi .val{font-size:21px;font-weight:700;letter-spacing:-.5px;margin:6px 0}
+.kpi .ic{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;margin-bottom:10px}
+.card{padding:16px;margin-top:12px}
+.ch{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:8px}
+.ch h3{margin:0;font-size:15px;font-weight:600} .ch p{margin:3px 0 0;font-size:12px;color:var(--tx3)}
+.legend{display:flex;gap:10px;font-size:11.5px;color:var(--tx2);flex-wrap:wrap;justify-content:flex-end}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+svg text{font-family:Inter,sans-serif}
+.seg{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{flex:1;border:0;background:none;color:var(--tx2);font:600 12.5px Inter;padding:8px 10px;border-radius:9px}
+.seg button.on{background:rgba(139,123,255,.25);color:#fff;box-shadow:inset 0 0 0 1px rgba(139,123,255,.4)}
+.month{padding:14px 16px;margin-top:10px}
+.mrow{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.mname{font-weight:600;font-size:15px;text-transform:capitalize}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.mstats div{background:rgba(255,255,255,.04);border-radius:12px;padding:8px 10px;font-size:11px;color:var(--tx3)}
+.mstats b{display:block;font-size:14px;color:var(--tx);margin-top:2px;font-weight:600}
+.entry{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.entry .ei{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;flex:none}
+.entry .et{flex:1;min-width:0} .entry .et b{font-size:13.5px;font-weight:600;display:block}
+.entry .et span{font-size:11.5px;color:var(--tx3)}
+.entry .ev{font-size:13.5px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.del{border:0;background:rgba(251,113,133,.12);color:var(--red);width:28px;height:28px;border-radius:9px;font-size:16px;line-height:1;flex:none}
+.field{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:12px}
+.field:last-child{border-bottom:0}
+.field label{font-size:13.5px} .field small{display:block;color:var(--tx3);font-size:11.5px;margin-top:2px}
+.field input,.field select{width:130px;text-align:right;background:rgba(255,255,255,.06);border:1px solid var(--line2);color:var(--tx);border-radius:11px;padding:9px 10px;font:600 15px Inter;outline:none;-webkit-appearance:none}
+.field input[type=date]{text-align:center}
+.field input:focus{border-color:var(--ora1);box-shadow:0 0 0 3px rgba(139,123,255,.2)}
+.tog{width:50px;height:30px;border-radius:99px;border:0;background:rgba(255,255,255,.12);position:relative;flex:none;transition:background .2s}
+.tog i{position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
+.tog.on{background:#34d399}.tog.on i{left:23px}
+.field input:disabled{opacity:.5}
+.sect{font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin:22px 4px 6px}
+.btn{width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--tx);font:600 14px Inter}
+.btn.pri{background:linear-gradient(135deg,#7c6bff,#4b3be0);border-color:rgba(255,255,255,.2);box-shadow:0 10px 30px -10px rgba(91,75,245,.8)}
+.btn.sm{width:auto;padding:10px 14px;margin:0;font-size:13px}
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:5;display:flex;gap:2px;padding:6px;border-radius:26px;width:min(94vw,440px);align-items:center}
+.tabbar button{flex:1;border:0;background:none;color:var(--tx3);font:600 10.5px Inter;padding:8px 2px 7px;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tabbar button.on{color:#fff;background:rgba(139,123,255,.22)}
+.tabbar svg{width:21px;height:21px}
+.tabbar .add{flex:none;width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,#8b7bff,#4b3be0);color:#fff;display:grid;place-items:center;padding:0;margin:0 4px;box-shadow:0 8px 24px -6px rgba(91,75,245,.9)}
+.tabbar .add svg{width:26px;height:26px}
+.view{display:none;animation:fade .35s ease} .view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.note{font-size:11.5px;color:var(--tx3);line-height:1.5;margin:14px 4px 0}
+.empty{text-align:center;padding:26px 18px}
+.empty .e1{font-size:30px} .empty p{color:var(--tx2);font-size:13.5px;line-height:1.5;margin:8px 0 14px}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10;display:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:560px;margin:0 auto;border-radius:26px 26px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom) + 18px);
+  background:linear-gradient(180deg,rgba(28,26,48,.97),rgba(14,13,24,.98));border:1px solid var(--line2);border-bottom:0;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.3,1);max-height:92vh;overflow:auto}
+.sheet:not(.open){visibility:hidden;transition:transform .32s,visibility 0s .32s}
+.sheet.open{transform:none}
+.grab{width:40px;height:5px;border-radius:9px;background:rgba(255,255,255,.2);margin:0 auto 12px}
+.sheet h2{font-size:19px;margin:0 0 12px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translate(-50%,-150%);z-index:20;padding:10px 16px;border-radius:14px;font-size:13px;font-weight:600;transition:transform .3s}
+.toast.on{transform:translate(-50%,0)}
+.confirm{display:none;gap:8px;margin-top:8px}
+textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px solid var(--line2);color:var(--tx);border-radius:12px;padding:10px;font:12px ui-monospace,monospace;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="bgfx"></div>
+<div class="wrap">
+  <div class="top">
+    <div class="hello">Olá, <b>Thiago</b> ⚡</div>
+    <div class="pill" id="sync"><i></i><span>conectando…</span></div>
+  </div>
+  <h1>ORA 5 <span>vs</span><br>Civic 2013</h1>
+
+  <!-- ================= PAINEL ================= -->
+  <section class="view on" id="v-home">
+    <div class="glass hero">
+      <div class="lbl">Economia real em combustível</div>
+      <div class="big" id="hVal">R$ 0</div>
+      <div class="sub" id="hSub">—</div>
+      <div class="prog"><div class="f" id="hBar" style="width:0"></div><div class="mk" id="hMk" style="left:0"></div></div>
+      <div class="progl"><span id="hL">real</span><span id="hR">plano</span></div>
+    </div>
+
+    <div id="homeEmpty"></div>
+
+    <div class="grid2">
+      <div class="glass kpi">
+        <div class="ic" style="background:rgba(139,123,255,.18)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b9b0ff" stroke-width="2.2"><path d="M3 17l6-6 4 4 8-8"/></svg></div>
+        <div class="lbl">Km rodados</div><div class="val" id="kKm">0</div><span class="chip v" id="kKmC">—</span>
+      </div>
+      <div class="glass kpi">
+        <div class="ic" style="background:rgba(52,211,153,.15)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
+        <div class="lbl">Consumo real</div><div class="val" id="kCons">—</div><span class="chip" id="kConsC">—</span>
+      </div>
+      <div class="glass kpi">
+        <div class="ic" style="background:rgba(255,106,43,.15)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff8a55" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="lbl">Custo por km</div><div class="val" id="kRkm">—</div><span class="chip v" id="kRkmC">—</span>
+      </div>
+      <div class="glass kpi">
+        <div class="ic" style="background:rgba(94,200,255,.15)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5ec8ff" stroke-width="2.2"><path d="M7 3v6M17 3v6M5 9h14v3a7 7 0 0 1-14 0zM12 19v3"/></svg></div>
+        <div class="lbl">Energia média paga</div><div class="val" id="kTar">—</div><span class="chip v" id="kTarC">—</span>
+      </div>
+    </div>
+
+    <div id="charts">
+    <div class="glass card">
+      <div class="ch"><div><h3>Economia acumulada</h3><p>Combustível: real × planejado</p></div>
+        <div class="legend"><span><i style="background:var(--green)"></i>Real</span><span><i style="background:#8b7bff"></i>Plano</span></div></div>
+      <svg id="cum" width="100%" height="190"></svg>
+    </div>
+
+    <div class="glass card">
+      <div class="ch"><div><h3>Conta completa</h3><p>Com mensalidade, seguro, IPVA e manutenção</p></div></div>
+      <div class="grid2" style="margin-top:0">
+        <div><div class="lbl">Civic teria custado</div><div style="font-size:20px;font-weight:700;margin-top:4px" id="tCiv">—</div></div>
+        <div><div class="lbl">ORA custou</div><div style="font-size:20px;font-weight:700;margin-top:4px;color:#c4bcff" id="tOra">—</div></div>
+      </div>
+      <div class="sub" style="margin-top:12px" id="tSub">—</div>
+    </div>
+
+    <div class="glass card">
+      <div class="ch"><div><h3>Mês a mês</h3><p>Civic nos mesmos km × ORA real (conta completa)</p></div>
+        <div class="legend"><span><i style="background:#9aa0b8"></i>Civic</span><span><i style="background:var(--ora1)"></i>ORA</span></div></div>
+      <svg id="bars" width="100%" height="200"></svg>
+    </div>
+    </div>
+  </section>
+
+  <!-- ================= HISTÓRICO ================= -->
+  <section class="view" id="v-hist"><div id="histList"></div></section>
+
+  <!-- ================= AJUSTES ================= -->
+  <section class="view" id="v-set">
+    <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
+    <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
+    <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
+    <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
+    <div class="sect">Backup</div>
+    <div class="glass" style="padding:14px 16px">
+      <div class="sub">Seus lançamentos ficam guardados neste iPhone. Copie um backup de vez em quando (ex.: cole numa nota) e use Restaurar se trocar de aparelho.</div>
+      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="bCopy">Copiar backup</button><button class="btn sm" id="bImp">Restaurar</button></div>
+      <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
+    </div>
+    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade e seguro entram sozinhos todo mês; IPVA, manutenção e outros gastos do ORA você lança como despesa.</p>
+  </section>
+</div>
+
+<nav class="tabbar glass">
+  <button class="on" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Painel</button>
+  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Histórico</button>
+  <button class="add" id="addBtn" aria-label="Novo lançamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+</nav>
+
+<div class="sheetbg" id="sbg"></div>
+<div class="sheet" id="sheet">
+  <div class="grab"></div>
+  <h2>Novo lançamento</h2>
+  <div class="seg" id="typeSeg"><button data-t="recarga" class="on">⚡ Recarga</button><button data-t="km">🛣️ Odômetro</button><button data-t="despesa">🧾 Despesa</button></div>
+  <div id="form" style="margin-top:8px"></div>
+  <div class="sub" id="formHint" style="margin-top:8px"></div>
+  <button class="btn pri" id="saveBtn">Salvar</button>
+</div>
+<div class="toast glass" id="toast"></div>
+
+<script>
+/* ======================= estado ======================= */
+const DEF={
+  inicio:"2027-02-01", odoIni:0,
+  gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
+  parcela:1200, nParc:75, seguroExtra:1000,
+  kmPlan:1000, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
+};
+let S={...DEF}, E=[], db=null, ready=false, GAS=null;
+try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s)S={...DEF,...s}}catch(e){}
+try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
+const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));localStorage.setItem("oc_e",JSON.stringify(E))}catch(e){}};
+
+/* ======================= utils ======================= */
+const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const fmt=(v,d=0)=>v.toLocaleString("pt-BR",{minimumFractionDigits:d,maximumFractionDigits:d});
+const brl=v=>(v<0?"−":"")+"R$ "+fmt(Math.abs(Math.round(v)));
+const brl2=v=>"R$ "+fmt(v,2);
+const num=s=>{if(typeof s==="number")return s;const v=parseFloat(String(s).trim().replace(/\./g,"").replace(",","."));return isNaN(v)?null:v};
+const todayISO=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const mkey=iso=>iso.slice(0,7);
+const mlabel=k=>{const[y,m]=k.split("-");return MES[+m-1]+"/"+y.slice(2)};
+const mname=k=>{const[y,m]=k.split("-");return MES[+m-1]+" "+y};
+const addM=(k,n)=>{let[y,m]=k.split("-").map(Number);m+=n;y+=Math.floor((m-1)/12);m=((m-1)%12+12)%12+1;return y+"-"+String(m).padStart(2,"0")};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.style.color=ok?"#34d399":"#fb7185";t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200)}
+function niceStep(x){if(x<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(x)));const f=x/p;return(f<1.5?1:f<3?2:f<7?5:10)*p}
+
+/* ======================= cálculo ======================= */
+function compute(){
+  const start=mkey(S.inicio), now=mkey(todayISO());
+  const lastE=E.reduce((a,e)=>e.date>a?e.date:a,S.inicio);
+  let end=[now,mkey(lastE)].sort().pop(); if(end<start) end=start;
+  const months=[]; for(let k=start;k<=end;k=addM(k,1)) months.push(k);
+  const M={}; months.forEach((k,i)=>M[k]={k,i,km:0,civFuel:0,energia:0,kwh:0,desp:0,despL:[],items:[]});
+
+  // km por leituras de odômetro
+  const reads=[{date:S.inicio,odo:S.odoIni,gas:S.gas,kml:S.kml,base:true}]
+    .concat(E.filter(e=>num(e.odo)>0).map(e=>({date:e.date,odo:num(e.odo),gas:e.gas??S.gas,kml:e.kml??S.kml})))
+    .sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.odo-b.odo);
+  for(let i=1;i<reads.length;i++){
+    const km=reads[i].odo-reads[i-1].odo, m=M[mkey(reads[i].date)];
+    if(km>0&&m){m.km+=km;m.civFuel+=km/reads[i].kml*reads[i].gas}
+  }
+  E.forEach(e=>{const m=M[mkey(e.date)];if(!m)return;m.items.push(e);
+    if(e.type==="recarga"){m.energia+=num(e.valor)||0;m.kwh+=num(e.kwh)||0}
+    if(e.type==="despesa"){m.desp+=num(e.valor)||0}
+  });
+
+  // fixos e plano
+  const seguroOra=S.seguroCiv+S.seguroExtra;
+  const planFuelEco=S.kmPlan*(S.gas/S.kml - S.kwh100/100*(1+S.perdas/100)*S.tarifa);
+  const today=new Date(), tk=mkey(todayISO());
+  const dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
+  months.forEach(k=>{const m=M[k];const mi=+k.split("-")[1]-1;
+    let frac=1; if(k===tk){frac=today.getDate()/dim} if(k>tk) frac=0;
+    if(k===start){const d0=+S.inicio.slice(8,10)||1;const dm=new Date(+k.slice(0,4),mi+1,0).getDate();frac=Math.max(0,Math.min(frac,(k===tk?today.getDate()-d0+1:dm-d0+1)/dm))}
+    m.frac=frac;
+    const ipvaM=mi<3;
+    m.civFix=(S.seguroCiv/12+(ipvaM?S.ipvaCiv/3:0)+S.manutCiv/12)*frac;
+    m.oraFix=(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+seguroOra/12)*frac;
+    m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
+    m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
+    m.planFuel=planFuelEco*frac;
+    m.planTot=planFuelEco*frac+m.civFix-m.oraFix-((ipvaM?S.ipvaOra/3:0)+S.manutOra/12)*frac;
+  });
+  const L=months.map(k=>M[k]);
+  const sum=f=>L.reduce((a,m)=>a+m[f],0);
+  return {L,months,started:tk>=start,
+    km:sum("km"),kwh:sum("kwh"),energia:sum("energia"),civFuel:sum("civFuel"),
+    ecoFuel:sum("ecoFuel"),planFuel:sum("planFuel"),civTot:sum("civTot"),oraTot:sum("oraTot"),ecoTot:sum("ecoTot"),planTot:sum("planTot"),
+    kmPlan:L.reduce((a,m)=>a+S.kmPlan*m.frac,0),planFuelEco};
+}
+
+/* ======================= render ======================= */
+function render(){
+  const R=compute();
+  const has=E.length>0;
+  // hero
+  document.getElementById("hVal").textContent=brl(R.ecoFuel);
+  document.getElementById("hVal").style.color=R.ecoFuel>=0?"var(--tx)":"var(--red)";
+  const pct=R.planFuel>0?R.ecoFuel/R.planFuel:0;
+  document.getElementById("hSub").innerHTML=!R.started
+    ?`Seu ORA começa a contar em <b>${mname(mkey(S.inicio))}</b>. O plano prevê <b style="color:var(--green)">${brl(R.planFuelEco)}/mês</b> de economia em combustível com ${fmt(S.kmPlan)} km/mês.`
+    :!has?`Nenhum lançamento ainda. Pelo plano, você já deveria ter economizado <b>${brl(R.planFuel)}</b>.`
+    :`Gasolina que o Civic gastaria em ${fmt(R.km)} km: <b>${brl(R.civFuel)}</b> · energia paga: <b>${brl(R.energia)}</b>.`;
+  const w=R.planFuel>0?Math.max(0,Math.min(1,R.ecoFuel/Math.max(R.planFuel,R.ecoFuel))):0;
+  const mk=R.planFuel>0?Math.min(1,R.planFuel/Math.max(R.planFuel,R.ecoFuel)):1;
+  document.getElementById("hBar").style.width=(w*100)+"%";
+  document.getElementById("hMk").style.left=`calc(${mk*100}% - 1px)`;
+  document.getElementById("hL").innerHTML=R.planFuel>0&&has?`<span class="chip ${pct>=1?"g":"r"}">${fmt(pct*100)}% do plano</span>`:"real";
+  document.getElementById("hR").textContent="plano até hoje: "+brl(R.planFuel);
+
+  document.getElementById("homeEmpty").innerHTML=has?"":`<div class="glass card empty"><div class="e1">⚡</div><p>Toque no <b>+</b> para lançar sua primeira recarga ou a leitura do odômetro. A economia é calculada comparando com o que o Civic gastaria de gasolina nos mesmos km.</p><button class="btn pri" onclick="openSheet()">Fazer primeiro lançamento</button></div>`;
+
+  // kpis
+  document.getElementById("kKm").textContent=fmt(R.km)+" km";
+  document.getElementById("kKmC").textContent="plano: "+fmt(R.kmPlan)+" km";
+  const cons=R.km>0&&R.kwh>0?R.kwh/R.km*100:null;
+  document.getElementById("kCons").textContent=cons?fmt(cons,1)+" kWh/100km":"—";
+  const cc=document.getElementById("kConsC");
+  const planCons=S.kwh100*(1+S.perdas/100);
+  if(cons){cc.className="chip "+(cons<=planCons?"g":"r");cc.textContent="plano "+fmt(planCons,1)} else {cc.className="chip v";cc.textContent="plano "+fmt(planCons,1)}
+  document.getElementById("kRkm").textContent=R.km>0?brl2(R.energia/R.km):"—";
+  document.getElementById("kRkmC").textContent="Civic "+brl2(S.gas/S.kml);
+  document.getElementById("kTar").textContent=R.kwh>0?brl2(R.energia/R.kwh)+"/kWh":"—";
+  document.getElementById("kTarC").textContent="casa "+brl2(S.tarifa);
+
+  // conta completa
+  document.getElementById("tCiv").textContent=brl(R.civTot);
+  document.getElementById("tOra").textContent=brl(R.oraTot);
+  const d=R.oraTot-R.civTot;
+  document.getElementById("tSub").innerHTML=!R.started?"Começa a contar quando o ORA chegar.":
+    (d>0?`O ORA custou <b style="color:var(--red)">${brl(d)}</b> a mais`:`O ORA custou <b style="color:var(--green)">${brl(-d)}</b> a menos`)+
+    ` no total até agora. O plano previa ${R.planTot<0?brl(-R.planTot)+" a mais":brl(R.planTot)+" a menos"} para o mesmo período.`;
+
+  document.getElementById("charts").style.display=has?"block":"none";
+  drawHist(R); if(has){drawCum(R); drawBars(R)}
+}
+
+function drawCum(R){
+  const svg=document.getElementById("cum"),W=svg.clientWidth||340,H=190,pl=36,pb=22,pt=14;
+  const L=R.L; let a=0,b=0; const re=[0],pl_=[0],lab=[""];
+  L.forEach(m=>{a+=m.ecoFuel;b+=m.planFuel;re.push(a);pl_.push(b);lab.push(mlabel(m.k))});
+  const n=re.length, mx=Math.max(1,...re,...pl_)*1.1, mn=Math.min(0,...re);
+  const X=i=>pl+(W-pl-10)*(n>1?i/(n-1):0), Y=v=>H-pb-((v-mn)/(mx-mn))*(H-pb-pt);
+  const path=arr=>arr.map((v,i)=>(i?"L":"M")+X(i).toFixed(1)+","+Y(v).toFixed(1)).join("");
+  let s=`<defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399" stop-opacity=".3"/><stop offset="1" stop-color="#34d399" stop-opacity="0"/></linearGradient></defs>`;
+  const st=niceStep((mx-mn)/4);
+  for(let v=Math.ceil(mn/st)*st;v<=mx;v+=st){const y=Y(v);s+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)"/><text x="${pl-6}" y="${y+3}" fill="rgba(244,244,251,.38)" font-size="9.5" text-anchor="end">${Math.abs(v)>=1000?fmt(v/1000,v%1000?1:0)+"k":fmt(v)}</text>`}
+  s+=`<path d="${path(pl_)}" fill="none" stroke="#8b7bff" stroke-width="2" stroke-dasharray="5 5" stroke-linecap="round"/>`;
+  s+=`<path d="${path(re)}L${X(n-1)},${Y(Math.max(mn,0))}L${X(0)},${Y(Math.max(mn,0))}Z" fill="url(#ga)"/>`;
+  s+=`<path d="${path(re)}" fill="none" stroke="#34d399" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`;
+  s+=`<circle cx="${X(n-1)}" cy="${Y(a)}" r="4.5" fill="#34d399" stroke="#07070d" stroke-width="2"/>`;
+  const ev=n>13?Math.ceil(n/6):n>7?2:1;
+  lab.forEach((l,i)=>{if(i>0&&(i-1)%ev===0)s+=`<text x="${X(i)}" y="${H-6}" fill="rgba(244,244,251,.38)" font-size="9.5" text-anchor="${i===n-1?"end":"middle"}">${l}</text>`});
+  svg.innerHTML=s;
+}
+
+function drawBars(R){
+  const svg=document.getElementById("bars"),W=svg.clientWidth||340,H=200,pl=36,pb=22,pt=10;
+  const L=R.L.slice(-12); if(!L.length){svg.innerHTML="";return}
+  const mx=Math.max(100,...L.map(m=>Math.max(m.civTot,m.oraTot)))*1.1;
+  const gw=(W-pl)/L.length,bw=Math.max(3,Math.min(13,gw*.34));
+  let s=`<defs><linearGradient id="go" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a89bff"/><stop offset="1" stop-color="#4b3be0"/></linearGradient><linearGradient id="gc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3b8cc"/><stop offset="1" stop-color="#4a4f63"/></linearGradient></defs>`;
+  const st=niceStep(mx/4);
+  for(let v=0;v<=mx;v+=st){const y=H-pb-(v/mx)*(H-pb-pt);s+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)"/><text x="${pl-6}" y="${y+3}" fill="rgba(244,244,251,.38)" font-size="9.5" text-anchor="end">${v>=1000?fmt(v/1000,v%1000?1:0)+"k":v}</text>`}
+  L.forEach((m,i)=>{const x=pl+gw*i+gw/2,hc=m.civTot/mx*(H-pb-pt),ho=m.oraTot/mx*(H-pb-pt);
+    s+=`<rect x="${x-bw-1}" y="${H-pb-hc}" width="${bw}" height="${hc}" rx="${bw/2.5}" fill="url(#gc)"/><rect x="${x+1}" y="${H-pb-ho}" width="${bw}" height="${ho}" rx="${bw/2.5}" fill="url(#go)"/>`;
+    if(L.length<=6||i%2===0)s+=`<text x="${x}" y="${H-6}" fill="rgba(244,244,251,.38)" font-size="9.5" text-anchor="middle">${mlabel(m.k)}</text>`});
+  svg.innerHTML=s;
+}
+
+const ICON={recarga:["⚡","rgba(52,211,153,.15)"],km:["🛣️","rgba(139,123,255,.18)"],despesa:["🧾","rgba(255,106,43,.15)"]};
+function drawHist(R){
+  const box=document.getElementById("histList");
+  if(!R.L.length){box.innerHTML="";return}
+  box.innerHTML=R.L.slice().reverse().map(m=>{
+    const items=m.items.slice().sort((a,b)=>a.date<b.date?1:-1);
+    return `<div class="glass month">
+      <div class="mrow"><span class="mname">${mname(m.k)}</span><span class="chip ${m.ecoFuel>=0?"g":"r"}">${m.ecoFuel>=0?"economia ":""}${brl(m.ecoFuel)}</span></div>
+      <div class="mstats"><div>Km<b>${fmt(m.km)}</b></div><div>Gasolina Civic<b>${brl(m.civFuel)}</b></div><div>Energia ORA<b>${brl(m.energia)}</b></div></div>
+      <div style="margin-top:10px">${items.length?items.map(e=>{
+        const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
+        const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
+        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
+        const v=e.type==="km"?"":brl2(num(e.valor)||0);
+        return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
+        :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
+  box.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
+    if(b.dataset.sure){removeEntry(b.dataset.id);return}
+    b.dataset.sure=1;b.textContent="?";b.style.width="auto";b.style.padding="0 10px";b.textContent="Apagar?";
+    setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent="×";b.style.width="28px";b.style.padding="0"}},3000)});
+}
+
+/* ======================= formulário ======================= */
+let ftype="recarga";
+function lastOdo(){return E.reduce((a,e)=>Math.max(a,num(e.odo)||0),S.odoIni)}
+function buildForm(){
+  const f=document.getElementById("form"), t=todayISO();
+  const row=(id,l,u,attrs="")=>`<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input id="${id}" ${attrs}></div>`;
+  let h=`<div class="field"><label>Data</label><input id="fDate" type="date" value="${t}"></div>`;
+  if(ftype==="recarga"){
+    h+=`<div class="field"><label>Onde</label><select id="fLocal"><option value="casa">Em casa</option><option value="rua">Eletroposto</option></select></div>`;
+    h+=row("fKwh","Energia","kWh",'inputmode="decimal" placeholder="0"');
+    h+=row("fVal","Valor pago","R$ · em casa calcula sozinho",'inputmode="decimal" placeholder="0,00"');
+    h+=row("fOdo","Odômetro","km · opcional, mas recomendado",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
+  } else if(ftype==="km"){
+    h+=row("fOdo","Odômetro","km mostrados no painel",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
+  } else {
+    h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Manutenção</option><option>IPVA</option><option>Pneus</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
+    h+=row("fVal","Valor","R$",'inputmode="decimal" placeholder="0,00"');
+    h+=row("fDesc","Descrição","opcional",'placeholder="—" style="text-align:left;width:150px"');
+  }
+  f.innerHTML=h;
+  const hint=document.getElementById("formHint");
+  hint.textContent=ftype==="recarga"?"Com o odômetro em cada recarga, o app calcula os km e quanto o Civic gastaria de gasolina."
+    :ftype==="km"?`Última leitura: ${fmt(lastOdo())} km. Lance quando quiser atualizar os km sem recarregar.`
+    :"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.";
+  const kwh=document.getElementById("fKwh"),val=document.getElementById("fVal"),loc=document.getElementById("fLocal");
+  if(kwh){const auto=()=>{if(loc.value==="casa"&&!val.dataset.touched){const k=num(kwh.value);val.value=k?fmt(k*S.tarifa,2):""}};
+    kwh.oninput=auto;loc.onchange=()=>{delete val.dataset.touched;auto()};val.oninput=()=>val.dataset.touched=1}
+}
+document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");ftype=b.dataset.t;buildForm()});
+function openSheet(){buildForm();document.getElementById("sbg").style.display="block";requestAnimationFrame(()=>document.getElementById("sheet").classList.add("open"))}
+function closeSheet(){document.getElementById("sheet").classList.remove("open");setTimeout(()=>document.getElementById("sbg").style.display="none",300)}
+document.getElementById("addBtn").onclick=openSheet;
+document.getElementById("sbg").onclick=closeSheet;
+document.getElementById("saveBtn").onclick=async()=>{
+  const g=id=>{const el=document.getElementById(id);return el?el.value:""};
+  const date=g("fDate"); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Data inválida",false);
+  const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
+  const odo=num(g("fOdo"));
+  if(odo!=null){ if(odo<=0) return toast("Odômetro inválido",false); e.odo=odo }
+  if(ftype==="recarga"){const k=num(g("fKwh")),v=num(g("fVal"));if(!k||k<=0)return toast("Informe os kWh",false);if(v==null||v<0)return toast("Informe o valor",false);e.kwh=k;e.valor=v;e.local=g("fLocal")}
+  if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
+  if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
+  if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
+  await addEntry(e); closeSheet(); toast("Lançamento salvo ✓");
+};
+
+/* ======================= persistência ======================= */
+async function addEntry(e){
+  E.push(e);cache();render();
+  if(db){try{await db.collection("entries").doc(e.id).set(e)}catch(err){toast("Não salvou na nuvem — ficou só neste aparelho",false)}}
+}
+async function removeEntry(id){
+  E=E.filter(e=>e.id!==id);cache();render();
+  if(db){try{await db.collection("entries").doc(id).delete()}catch(err){toast("Erro ao apagar na nuvem",false)}}
+}
+let sTimer=null,sChain=Promise.resolve();
+function saveSettings(){cache();render();if(!db)return;clearTimeout(sTimer);sTimer=setTimeout(()=>{const snap={...S};sChain=sChain.then(()=>db.doc("config/settings").set(snap)).catch(()=>toast("Ajustes não sincronizaram",false))},800)}
+function setSync(ok,txt){const p=document.getElementById("sync");p.className="pill"+(ok?" ok":"");p.querySelector("span").textContent=txt}
+
+async function initDB(){
+  setSync(true,"salvo no iPhone");
+  try{
+    const r=await fetch("gas.json?t="+Date.now(),{cache:"no-store"});
+    if(r.ok){const d=await r.json();const p=num(d.preco);
+      if(p>0){GAS={preco:p,semana:d.semana||"",fonte:d.fonte||""};const old=S.gas;applyGas();cache();
+        if(!document.querySelector("#v-set input:focus"))buildSettings();render();if(old!==S.gas)saveSettings()}}
+  }catch(e){}
+}
+function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
+/* ======================= ajustes ======================= */
+const FIELDS={
+  fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
+  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro","R$/ano","num"],["ipvaCiv","IPVA + licenciamento","R$/ano · jan–mar","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
+  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroExtra","Seguro a mais que o Civic","R$/ano · entra sozinho","num"]],
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Energia em casa","R$/kWh","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["ipvaOra","IPVA ORA","R$/ano · planejado","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+};
+function buildSettings(){
+  for(const[box,list]of Object.entries(FIELDS)){
+    document.getElementById(box).innerHTML=list.map(([k,l,u,t])=>{
+      if(t==="bool") return `<div class="field"><label>${l}<small>${k==="gasAuto"&&GAS?esc("Última: "+brl2(GAS.preco)+" · "+(GAS.semana||"")):u}</small></label><button class="tog ${S[k]?"on":""}" data-b="${k}"><i></i></button></div>`;
+      const dis=(k==="gas"&&S.gasAuto&&GAS)?"disabled":"";
+      return `<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${dis} ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`}).join("");
+  }
+  document.querySelectorAll("#v-set .tog").forEach(b=>b.onclick=()=>{const k=b.dataset.b;S[k]=S[k]?0:1;applyGas();saveSettings();buildSettings()});
+  document.querySelectorAll("#v-set .field input").forEach(inp=>inp.addEventListener("input",()=>{
+    const k=inp.dataset.k;
+    if(k==="inicio"){if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value)){S.inicio=inp.value;saveSettings()}return}
+    const v=num(inp.value); if(v==null||v<0)return; if(["kml","kwh100"].includes(k)&&v===0)return;
+    S[k]=v; saveSettings();
+  }));
+}
+document.getElementById("bCopy").onclick=async()=>{
+  const txt=JSON.stringify({v:1,settings:S,entries:E});
+  try{await navigator.clipboard.writeText(txt);toast("Backup copiado ✓")}catch(e){const ta=document.getElementById("impTxt");ta.style.display="block";ta.value=txt;ta.select();toast("Copie o texto abaixo",false)}
+};
+document.getElementById("bImp").onclick=async()=>{
+  const ta=document.getElementById("impTxt");
+  if(ta.style.display!=="block"||!ta.value.trim()){ta.style.display="block";ta.value="";ta.focus();return}
+  try{const o=JSON.parse(ta.value);if(!Array.isArray(o.entries))throw 0;
+    S={...DEF,...(o.settings||{})};saveSettings();buildSettings();
+    const ids=new Set(E.map(e=>e.id));
+    for(const e of o.entries){if(e&&e.id&&e.date&&e.type&&!ids.has(e.id)){await addEntry(e)}}
+    ta.value="";ta.style.display="none";toast("Backup restaurado ✓");
+  }catch(e){toast("Backup inválido",false)}
+};
+
+/* ======================= navegação ======================= */
+document.querySelectorAll(".tabbar button[data-v]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tabbar button[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  document.getElementById("v-"+b.dataset.v).classList.add("on");
+  window.scrollTo({top:0,behavior:"smooth"}); render();
+});
+window.addEventListener("resize",render);
+buildSettings(); render(); initDB();
+</script>
+</body>
+</html>
