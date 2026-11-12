@@ -183,6 +183,10 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
     <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
     <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
+    <div class="sect">Conta de luz · custo efetivo do kWh</div>
+    <div class="glass" style="padding:2px 16px" id="fTar"></div>
+    <div class="sect">Seguro e IPVA por ano</div>
+    <div id="fAnos"></div>
     <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
@@ -190,7 +194,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="bCopy">Copiar backup</button><button class="btn sm" id="bImp">Restaurar</button></div>
       <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
     </div>
-    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade e seguro entram sozinhos todo mês; IPVA, manutenção e outros gastos do ORA você lança como despesa.</p>
+    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro e IPVA entram sozinhos (IPVA dividido em jan–mar), usando o valor do ano. Manutenção e outros gastos do ORA você lança como despesa.</p>
   </section>
 </div>
 
@@ -217,11 +221,15 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
-  parcela:1200, nParc:75, seguroExtra:1000,
+  parcela:1200, nParc:75, seguroOra:3400, anos:{}, tarifas:{},
   kmPlan:1000, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
-try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s)S={...DEF,...s}}catch(e){}
+try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
+const tarM=k=>{const v=num((S.tarifas||{})[k]);return v>0?v:S.tarifa};
+const DEFY={seguroOra:"seguroOra",ipvaOra:"ipvaOra",seguroCiv:"seguroCiv",ipvaCiv:"ipvaCiv"};
+const yv=(y,k)=>{const o=(S.anos||{})[y];const v=o?num(o[k]):null;return v!=null&&v>=0?v:S[DEFY[k]]};
+const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarM(e.date.slice(0,7));
 try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
 const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));localStorage.setItem("oc_e",JSON.stringify(E))}catch(e){}};
 
@@ -257,12 +265,11 @@ function compute(){
     if(km>0&&m){m.km+=km;m.civFuel+=km/reads[i].kml*reads[i].gas}
   }
   E.forEach(e=>{const m=M[mkey(e.date)];if(!m)return;m.items.push(e);
-    if(e.type==="recarga"){m.energia+=num(e.valor)||0;m.kwh+=num(e.kwh)||0}
+    if(e.type==="recarga"){m.energia+=custoRec(e);m.kwh+=num(e.kwh)||0}
     if(e.type==="despesa"){m.desp+=num(e.valor)||0}
   });
 
   // fixos e plano
-  const seguroOra=S.seguroCiv+S.seguroExtra;
   const planFuelEco=S.kmPlan*(S.gas/S.kml - S.kwh100/100*(1+S.perdas/100)*S.tarifa);
   const today=new Date(), tk=mkey(todayISO());
   const dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
@@ -271,12 +278,13 @@ function compute(){
     if(k===start){const d0=+S.inicio.slice(8,10)||1;const dm=new Date(+k.slice(0,4),mi+1,0).getDate();frac=Math.max(0,Math.min(frac,(k===tk?today.getDate()-d0+1:dm-d0+1)/dm))}
     m.frac=frac;
     const ipvaM=mi<3;
-    m.civFix=(S.seguroCiv/12+(ipvaM?S.ipvaCiv/3:0)+S.manutCiv/12)*frac;
-    m.oraFix=(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+seguroOra/12)*frac;
+    const yr=k.slice(0,4); m.tar=tarM(k); m.tarFat=num((S.tarifas||{})[k])>0;
+    m.civFix=(yv(yr,"seguroCiv")/12+(ipvaM?yv(yr,"ipvaCiv")/3:0)+S.manutCiv/12)*frac;
+    m.oraFix=(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+yv(yr,"seguroOra")/12+(ipvaM?yv(yr,"ipvaOra")/3:0))*frac;
     m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
     m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
     m.planFuel=planFuelEco*frac;
-    m.planTot=planFuelEco*frac+m.civFix-m.oraFix-((ipvaM?S.ipvaOra/3:0)+S.manutOra/12)*frac;
+    m.planTot=planFuelEco*frac+m.civFix-m.oraFix-(S.manutOra/12)*frac;
   });
   const L=months.map(k=>M[k]);
   const sum=f=>L.reduce((a,m)=>a+m[f],0);
@@ -373,12 +381,13 @@ function drawHist(R){
     const items=m.items.slice().sort((a,b)=>a.date<b.date?1:-1);
     return `<div class="glass month">
       <div class="mrow"><span class="mname">${mname(m.k)}</span><span class="chip ${m.ecoFuel>=0?"g":"r"}">${m.ecoFuel>=0?"economia ":""}${brl(m.ecoFuel)}</span></div>
+      <div class="sub" style="margin-top:6px;font-size:12px">kWh em casa: <b>${brl2(m.tar)}</b> ${m.tarFat?"· da fatura":"· padrão (fatura não lançada)"}</div>
       <div class="mstats"><div>Km<b>${fmt(m.km)}</b></div><div>Gasolina Civic<b>${brl(m.civFuel)}</b></div><div>Energia ORA<b>${brl(m.energia)}</b></div></div>
       <div style="margin-top:10px">${items.length?items.map(e=>{
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
         const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
         const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
-        const v=e.type==="km"?"":brl2(num(e.valor)||0);
+        const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
         return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
   box.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
@@ -397,12 +406,12 @@ function buildForm(){
   if(ftype==="recarga"){
     h+=`<div class="field"><label>Onde</label><select id="fLocal"><option value="casa">Em casa</option><option value="rua">Eletroposto</option></select></div>`;
     h+=row("fKwh","Energia","kWh",'inputmode="decimal" placeholder="0"');
-    h+=row("fVal","Valor pago","R$ · em casa calcula sozinho",'inputmode="decimal" placeholder="0,00"');
+    h+=`<div id="valRow" style="display:none">`+row("fVal","Valor pago","R$ · eletroposto",'inputmode="decimal" placeholder="0,00"')+`</div>`;
     h+=row("fOdo","Odômetro","km · opcional, mas recomendado",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
   } else if(ftype==="km"){
     h+=row("fOdo","Odômetro","km mostrados no painel",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
   } else {
-    h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Manutenção</option><option>IPVA</option><option>Pneus</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
+    h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Manutenção</option><option>Pneus</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
     h+=row("fVal","Valor","R$",'inputmode="decimal" placeholder="0,00"');
     h+=row("fDesc","Descrição","opcional",'placeholder="—" style="text-align:left;width:150px"');
   }
@@ -412,8 +421,11 @@ function buildForm(){
     :ftype==="km"?`Última leitura: ${fmt(lastOdo())} km. Lance quando quiser atualizar os km sem recarregar.`
     :"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.";
   const kwh=document.getElementById("fKwh"),val=document.getElementById("fVal"),loc=document.getElementById("fLocal");
-  if(kwh){const auto=()=>{if(loc.value==="casa"&&!val.dataset.touched){const k=num(kwh.value);val.value=k?fmt(k*S.tarifa,2):""}};
-    kwh.oninput=auto;loc.onchange=()=>{delete val.dataset.touched;auto()};val.oninput=()=>val.dataset.touched=1}
+  if(kwh){const dt=document.getElementById("fDate");const upd=()=>{const casa=loc.value==="casa";document.getElementById("valRow").style.display=casa?"none":"block";
+      if(casa){const mk=(dt.value||todayISO()).slice(0,7),t=tarM(mk),k=num(kwh.value);const fat=num((S.tarifas||{})[mk])>0;
+        hint.innerHTML=`Em casa o custo usa a tarifa de ${mname(mk)}: <b>${brl2(t)}/kWh</b> ${fat?"(da fatura)":"(padrão — atualize quando a conta chegar)"}${k?` → <b>${brl2(k*t)}</b>`:""}.`}
+      else hint.textContent="No eletroposto, informe quanto pagou."};
+    kwh.oninput=upd;loc.onchange=upd;dt.onchange=upd;upd()}
 }
 document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");ftype=b.dataset.t;buildForm()});
 function openSheet(){buildForm();document.getElementById("sbg").style.display="block";requestAnimationFrame(()=>document.getElementById("sheet").classList.add("open"))}
@@ -426,7 +438,7 @@ document.getElementById("saveBtn").onclick=async()=>{
   const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
   const odo=num(g("fOdo"));
   if(odo!=null){ if(odo<=0) return toast("Odômetro inválido",false); e.odo=odo }
-  if(ftype==="recarga"){const k=num(g("fKwh")),v=num(g("fVal"));if(!k||k<=0)return toast("Informe os kWh",false);if(v==null||v<0)return toast("Informe o valor",false);e.kwh=k;e.valor=v;e.local=g("fLocal")}
+  if(ftype==="recarga"){const k=num(g("fKwh"));if(!k||k<=0)return toast("Informe os kWh",false);e.kwh=k;e.local=g("fLocal");if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
@@ -459,9 +471,9 @@ function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
 /* ======================= ajustes ======================= */
 const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
-  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro","R$/ano","num"],["ipvaCiv","IPVA + licenciamento","R$/ano · jan–mar","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
-  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroExtra","Seguro a mais que o Civic","R$/ano · entra sozinho","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Energia em casa","R$/kWh","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["ipvaOra","IPVA ORA","R$/ano · planejado","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaCiv","IPVA padrão","R$/ano · jan–mar","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
+  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaOra","IPVA padrão","R$/ano · jan–mar","num"]],
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Tarifa padrão","R$/kWh · até lançar a fatura","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){
@@ -470,13 +482,33 @@ function buildSettings(){
       const dis=(k==="gas"&&S.gasAuto&&GAS)?"disabled":"";
       return `<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${dis} ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`}).join("");
   }
+  buildPeriods();
   document.querySelectorAll("#v-set .tog").forEach(b=>b.onclick=()=>{const k=b.dataset.b;S[k]=S[k]?0:1;applyGas();saveSettings();buildSettings()});
   document.querySelectorAll("#v-set .field input").forEach(inp=>inp.addEventListener("input",()=>{
-    const k=inp.dataset.k;
+    const k=inp.dataset.k; if(!k) return;
     if(k==="inicio"){if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value)){S.inicio=inp.value;saveSettings()}return}
     const v=num(inp.value); if(v==null||v<0)return; if(["kml","kwh100"].includes(k)&&v===0)return;
     S[k]=v; saveSettings();
   }));
+}
+function buildPeriods(){
+  const start=mkey(S.inicio), now=mkey(todayISO()), endM=now>start?now:start, ms=[];
+  for(let k=start;k<=endM;k=addM(k,1)) ms.push(k);
+  S.tarifas=S.tarifas||{}; S.anos=S.anos||{};
+  document.getElementById("fTar").innerHTML=ms.reverse().map(k=>{const v=num(S.tarifas[k]);
+    return `<div class="field"><label><span style="text-transform:capitalize">${mname(k)}</span><small>${v>0?"da fatura":"vazio = padrão "+brl2(S.tarifa)}</small></label><input data-tar="${k}" inputmode="decimal" placeholder="${fmt(S.tarifa,2)}" value="${v>0?fmt(v,2).replace(/\./g,""):""}"></div>`}).join("")
+    +`<div class="sub" style="padding:10px 0 12px">Na conta de luz: valor total ÷ kWh consumidos. Vale para as recargas em casa daquele mês.</div>`;
+  const y0=+start.slice(0,4), y1=Math.max(+now.slice(0,4),y0)+1, ys=[];
+  for(let y=y1;y>=y0;y--) ys.push(String(y));
+  const F=[["seguroOra","Seguro ORA"],["ipvaOra","IPVA ORA"],["seguroCiv","Seguro Civic"],["ipvaCiv","IPVA Civic"]];
+  document.getElementById("fAnos").innerHTML=ys.map(y=>`<div class="glass" style="padding:2px 16px;margin-bottom:10px"><div style="font-weight:700;padding:12px 0 2px">${y}</div>`+
+    F.map(([f,l])=>{const o=S.anos[y]||{};const v=o[f]!=null&&o[f]!==""?num(o[f]):null;
+      return `<div class="field"><label>${l}<small>${v!=null?"R$/ano":"vazio = padrão "+brl(S[f])}</small></label><input data-ano="${y}" data-f="${f}" inputmode="decimal" placeholder="${fmt(S[f])}" value="${v!=null?String(v).replace(".",","):""}"></div>`}).join("")+`</div>`).join("");
+  document.querySelectorAll("#fTar input").forEach(inp=>inp.addEventListener("input",()=>{const k=inp.dataset.tar,v=num(inp.value);
+    if(inp.value.trim()===""){delete S.tarifas[k]}else if(v!=null&&v>0&&v<10){S.tarifas[k]=v}else return; saveSettings()}));
+  document.querySelectorAll("#fAnos input").forEach(inp=>inp.addEventListener("input",()=>{const y=inp.dataset.ano,f=inp.dataset.f,v=num(inp.value);
+    S.anos[y]=S.anos[y]||{}; if(inp.value.trim()===""){delete S.anos[y][f]}else if(v!=null&&v>=0){S.anos[y][f]=v}else return;
+    if(!Object.keys(S.anos[y]).length) delete S.anos[y]; saveSettings()}));
 }
 document.getElementById("bCopy").onclick=async()=>{
   const txt=JSON.stringify({v:1,settings:S,entries:E});
