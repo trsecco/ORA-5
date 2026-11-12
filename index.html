@@ -83,6 +83,9 @@ svg text{font-family:Inter,sans-serif}
 .tog i{position:absolute;left:3px;top:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s}
 .tog.on{background:#34d399}.tog.on i{left:23px}
 .field input:disabled{opacity:.5}
+details.old summary{list-style:none;cursor:pointer;font-size:12.5px;color:var(--tx2);padding:10px 0;border-top:1px solid var(--line)}
+details.old summary::-webkit-details-marker{display:none}
+details.old[open] summary{color:var(--tx)}
 .sect{font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;color:var(--tx3);margin:22px 4px 6px}
 .btn{width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--tx);font:600 14px Inter}
 .btn.pri{background:linear-gradient(135deg,#7c6bff,#4b3be0);border-color:rgba(255,255,255,.2);box-shadow:0 10px 30px -10px rgba(91,75,245,.8)}
@@ -185,8 +188,10 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
     <div class="sect">Contas de luz</div>
     <div class="glass" style="padding:2px 16px" id="fTar"></div>
-    <div class="sect">Seguro e IPVA por ano</div>
-    <div id="fAnos"></div>
+    <div class="sect">Seguros</div>
+    <div class="glass" style="padding:2px 16px" id="fSeg"></div>
+    <div class="sect">IPVA</div>
+    <div class="glass" style="padding:2px 16px" id="fIpva"></div>
     <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
@@ -194,7 +199,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="bCopy">Copiar backup</button><button class="btn sm" id="bImp">Restaurar</button></div>
       <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
     </div>
-    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro e IPVA entram sozinhos (IPVA dividido em jan–mar), usando o valor do ano. Manutenção e outros gastos do ORA você lança como despesa.</p>
+    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro (pelos dias da apólice) e IPVA (dividido em jan–mar) entram sozinhos. Manutenção e outros gastos do ORA você lança como despesa.</p>
   </section>
 </div>
 
@@ -221,7 +226,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
-  parcela:1200, nParc:75, seguroOra:3400, anos:{}, faturas:[],
+  parcela:1200, nParc:75, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
   kmPlan:1000, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
@@ -229,8 +234,19 @@ try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...
 const FAT=()=>(S.faturas||[]).filter(f=>f&&f.de&&f.ate&&num(f.tarifa)>0).sort((a,b)=>a.ate<b.ate?-1:1);
 const tarD=d=>{const L=FAT();const f=L.find(f=>d>f.de&&d<=f.ate);if(f)return{t:num(f.tarifa),f,fat:true};
   const last=L[L.length-1];return last&&d>last.ate?{t:num(last.tarifa),f:last,fat:false}:{t:S.tarifa,f:null,fat:false}};
-const DEFY={seguroOra:"seguroOra",ipvaOra:"ipvaOra",seguroCiv:"seguroCiv",ipvaCiv:"ipvaCiv"};
-const yv=(y,k)=>{const o=(S.anos||{})[y];const v=o?num(o[k]):null;return v!=null&&v>=0?v:S[DEFY[k]]};
+// migração do formato antigo (valores por ano)
+if(S.anos&&Object.keys(S.anos).length){S.seguros=S.seguros||[];S.ipvas=S.ipvas||[];
+  for(const[y,o]of Object.entries(S.anos)){
+    if(o.seguroOra!=null)S.seguros.push({id:"m"+y+"o",car:"ora",de:y+"-01-01",ate:(+y+1)+"-01-01",valor:Number(o.seguroOra)});
+    if(o.seguroCiv!=null)S.seguros.push({id:"m"+y+"c",car:"civ",de:y+"-01-01",ate:(+y+1)+"-01-01",valor:Number(o.seguroCiv)});
+    if(o.ipvaOra!=null)S.ipvas.push({id:"i"+y+"o",car:"ora",ano:y,valor:Number(o.ipvaOra)});
+    if(o.ipvaCiv!=null)S.ipvas.push({id:"i"+y+"c",car:"civ",ano:y,valor:Number(o.ipvaCiv)});}
+  delete S.anos;}
+const DAY=86400000, dU=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10)), isoU=t=>new Date(t).toISOString().slice(0,10);
+const SEG=c=>(S.seguros||[]).filter(x=>x&&x.car===c&&x.de&&x.ate&&x.ate>x.de&&num(x.valor)>=0).sort((a,b)=>a.de<b.de?-1:1);
+const segDia=(c,d)=>{const L=SEG(c);const f=L.filter(x=>d>=x.de&&d<x.ate).pop();if(f)return num(f.valor)/((dU(f.ate)-dU(f.de))/DAY);
+  const prev=L.filter(x=>x.ate<=d).pop();return (prev?num(prev.valor):(c==="ora"?S.seguroOra:S.seguroCiv))/365};
+const ipvaAno=(c,y)=>{const f=(S.ipvas||[]).find(x=>x&&x.car===c&&String(x.ano)===String(y));return f?num(f.valor):(c==="ora"?S.ipvaOra:S.ipvaCiv)};
 const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarD(e.date).t;
 try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
 const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));localStorage.setItem("oc_e",JSON.stringify(E))}catch(e){}};
@@ -279,10 +295,13 @@ function compute(){
     let frac=1; if(k===tk){frac=today.getDate()/dim} if(k>tk) frac=0;
     if(k===start){const d0=+S.inicio.slice(8,10)||1;const dm=new Date(+k.slice(0,4),mi+1,0).getDate();frac=Math.max(0,Math.min(frac,(k===tk?today.getDate()-d0+1:dm-d0+1)/dm))}
     m.frac=frac;
+    // dias contados no mês (desde o início e até hoje)
+    const mS=k+"-01", mE=isoU(Date.UTC(+k.slice(0,4),mi+1,0)); let a=mS<S.inicio?S.inicio:mS, b=mE>todayISO()?todayISO():mE;
+    m.segOra=0;m.segCiv=0; for(let t=dU(a);t<=dU(b);t+=DAY){const d=isoU(t);m.segOra+=segDia("ora",d);m.segCiv+=segDia("civ",d)}
     const ipvaM=mi<3;
     const yr=k.slice(0,4);
-    m.civFix=(yv(yr,"seguroCiv")/12+(ipvaM?yv(yr,"ipvaCiv")/3:0)+S.manutCiv/12)*frac;
-    m.oraFix=(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+yv(yr,"seguroOra")/12+(ipvaM?yv(yr,"ipvaOra")/3:0))*frac;
+    m.civFix=m.segCiv+((ipvaM?ipvaAno("civ",yr)/3:0)+S.manutCiv/12)*frac;
+    m.oraFix=m.segOra+(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+(ipvaM?ipvaAno("ora",yr)/3:0))*frac;
     m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
     m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
     m.planFuel=planFuelEco*frac;
@@ -473,8 +492,8 @@ function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
 /* ======================= ajustes ======================= */
 const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
-  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaCiv","IPVA padrão","R$/ano · jan–mar","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
-  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaOra","IPVA padrão","R$/ano · jan–mar","num"]],
+  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
+  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
   fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
@@ -495,9 +514,10 @@ function buildSettings(){
 }
 function buildPeriods(){
   const start=mkey(S.inicio), now=mkey(todayISO());
-  S.faturas=S.faturas||[]; S.anos=S.anos||{};
+  S.faturas=S.faturas||[]; S.seguros=S.seguros||[]; S.ipvas=S.ipvas||[];
   const L=FAT().slice().reverse(), dd=d=>d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(2,4);
-  document.getElementById("fTar").innerHTML=(L.length?L.map(f=>`<div class="entry"><div class="ei" style="background:rgba(94,200,255,.15)">💡</div><div class="et"><b>Conta ${mlabel(f.ref)} · ${brl2(num(f.tarifa))}/kWh</b><span>leituras ${dd(f.de)} → ${dd(f.ate)}${f.kwh?" · "+fmt(num(f.kwh))+" kWh":""}</span></div><button class="del" data-fat="${esc(f.id)}">×</button></div>`).join(""):`<div class="sub" style="padding:12px 0">Nenhuma conta lançada.</div>`)+
+  const fatRow=f=>`<div class="entry"><div class="ei" style="background:rgba(94,200,255,.15)">💡</div><div class="et"><b>Conta ${mlabel(f.ref)} · ${brl2(num(f.tarifa))}/kWh</b><span>leituras ${dd(f.de)} → ${dd(f.ate)}${f.kwh?" · "+fmt(num(f.kwh))+" kWh":""}</span></div><button class="del" data-fat="${esc(f.id)}">×</button></div>`;
+  document.getElementById("fTar").innerHTML=(L.length?L.slice(0,3).map(fatRow).join("")+oldList(L.slice(3).map(fatRow)):`<div class="sub" style="padding:12px 0">Nenhuma conta lançada.</div>`)+
   `<div id="fatForm" style="display:none;border-top:1px solid var(--line)">
     <div class="field"><label>Referência<small>mês da conta</small></label><input id="fRef" type="month"></div>
     <div class="field"><label>Leitura anterior</label><input id="fDe" type="date"></div>
@@ -524,15 +544,53 @@ function buildPeriods(){
   cancel.onclick=()=>buildSettings();
   document.querySelectorAll("#fTar .del").forEach(b=>b.onclick=()=>{if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Apagar?";b.style.width="auto";b.style.padding="0 10px";return}
     S.faturas=S.faturas.filter(f=>f.id!==b.dataset.fat);saveSettings();buildSettings()});
-  const y0=+start.slice(0,4), y1=Math.max(+now.slice(0,4),y0)+1, ys=[];
-  for(let y=y1;y>=y0;y--) ys.push(String(y));
-  const F=[["seguroOra","Seguro ORA"],["ipvaOra","IPVA ORA"],["seguroCiv","Seguro Civic"],["ipvaCiv","IPVA Civic"]];
-  document.getElementById("fAnos").innerHTML=ys.map(y=>`<div class="glass" style="padding:2px 16px;margin-bottom:10px"><div style="font-weight:700;padding:12px 0 2px">${y}</div>`+
-    F.map(([f,l])=>{const o=S.anos[y]||{};const v=o[f]!=null&&o[f]!==""?num(o[f]):null;
-      return `<div class="field"><label>${l}<small>${v!=null?"R$/ano":"vazio = padrão "+brl(S[f])}</small></label><input data-ano="${y}" data-f="${f}" inputmode="decimal" placeholder="${fmt(S[f])}" value="${v!=null?String(v).replace(".",","):""}"></div>`}).join("")+`</div>`).join("");
-  document.querySelectorAll("#fAnos input").forEach(inp=>inp.addEventListener("input",()=>{const y=inp.dataset.ano,f=inp.dataset.f,v=num(inp.value);
-    S.anos[y]=S.anos[y]||{}; if(inp.value.trim()===""){delete S.anos[y][f]}else if(v!=null&&v>=0){S.anos[y][f]=v}else return;
-    if(!Object.keys(S.anos[y]).length) delete S.anos[y]; saveSettings()}));
+  buildSeg(); buildIpva();
+}
+const CAR={ora:"ORA 5",civ:"Civic"}, dd2=d=>d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(2,4);
+function oldList(rows){return rows.length?`<details class="old"><summary>Anteriores (${rows.length}) ▾</summary>${rows.join("")}</details>`:""}
+function delBtns(box,key,arr){document.querySelectorAll("#"+box+" .del").forEach(b=>b.onclick=()=>{if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Apagar?";b.style.width="auto";b.style.padding="0 10px";return}
+  S[arr]=S[arr].filter(x=>x.id!==b.dataset[key]);saveSettings();buildSettings()})}
+function formToggle(box,label,html,onOpen,onSave){
+  const el=document.getElementById(box);
+  el.insertAdjacentHTML("beforeend",`<div class="xf" style="display:none;border-top:1px solid var(--line)">${html}</div><div style="display:flex;gap:8px;padding:12px 0"><button class="btn sm xa">${label}</button><button class="btn sm xc" style="display:none">Cancelar</button></div>`);
+  const f=el.querySelector(".xf"),a=el.querySelector(".xa"),c=el.querySelector(".xc");
+  a.onclick=()=>{if(f.style.display==="none"){f.style.display="block";c.style.display="block";a.textContent="Salvar";onOpen&&onOpen(el);return}onSave(el)};
+  c.onclick=()=>buildSettings();
+}
+function buildSeg(){
+  const t=todayISO(), L=(S.seguros||[]).slice().sort((a,b)=>a.de<b.de?1:-1);
+  const vig=c=>SEG(c).filter(x=>t>=x.de&&t<x.ate).pop();
+  const row=x=>{const v=vig(x.car),atual=v&&v.id===x.id;return `<div class="entry"><div class="ei" style="background:rgba(255,106,43,.15)">🛡️</div><div class="et"><b>${CAR[x.car]} · ${brl(num(x.valor))}/ano</b><span>${dd2(x.de)} → ${dd2(x.ate)}${atual?" · vigente":x.de>t?" · futura":(x.de<=t&&t<x.ate?" · substituída":"")}</span></div><button class="del" data-seg="${esc(x.id)}">×</button></div>`};
+  const cur=L.filter(x=>x.ate>t), old=L.filter(x=>x.ate<=t);
+  document.getElementById("fSeg").innerHTML=(cur.length?cur.map(row).join(""):`<div class="sub" style="padding:12px 0">Nenhuma apólice vigente — usando o seguro padrão.</div>`)+oldList(old.map(row));
+  formToggle("fSeg","+ Adicionar apólice",`
+    <div class="field"><label>Carro</label><select class="sCar"><option value="ora">ORA 5</option><option value="civ">Civic (referência)</option></select></div>
+    <div class="field"><label>Início da vigência</label><input class="sDe" type="date"></div>
+    <div class="field"><label>Fim da vigência</label><input class="sAte" type="date"></div>
+    <div class="field"><label>Valor total<small>R$ · prêmio da apólice</small></label><input class="sVal" inputmode="decimal" placeholder="0,00"></div>`,
+    el=>{const de=el.querySelector(".sDe"),ate=el.querySelector(".sAte"),car=el.querySelector(".sCar");
+      const fill=()=>{const last=SEG(car.value).pop();de.value=last?last.ate:S.inicio;const d=new Date(dU(de.value));d.setUTCFullYear(d.getUTCFullYear()+1);ate.value=isoU(d.getTime())};
+      fill();car.onchange=fill;de.onchange=()=>{const d=new Date(dU(de.value));d.setUTCFullYear(d.getUTCFullYear()+1);ate.value=isoU(d.getTime())}},
+    el=>{const car=el.querySelector(".sCar").value,de=el.querySelector(".sDe").value,ate=el.querySelector(".sAte").value,v=num(el.querySelector(".sVal").value);
+      if(!de||!ate||ate<=de)return toast("Confira as datas",false); if(v==null||v<0)return toast("Informe o valor",false);
+      S.seguros=(S.seguros||[]).concat({id:"s"+Date.now().toString(36),car,de,ate,valor:v});saveSettings();buildSettings();toast("Apólice salva ✓")});
+  delBtns("fSeg","seg","seguros");
+  document.getElementById("fSeg").insertAdjacentHTML("beforeend",`<div class="sub" style="padding:0 0 12px">O valor é distribuído pelos dias da vigência. Depois que uma apólice vence, o app segue com o mesmo valor até você lançar a renovação.</div>`);
+}
+function buildIpva(){
+  const y=String(new Date().getFullYear()), L=(S.ipvas||[]).slice().sort((a,b)=>String(a.ano)<String(b.ano)?1:String(a.ano)>String(b.ano)?-1:a.car<b.car?1:-1);
+  const row=x=>`<div class="entry"><div class="ei" style="background:rgba(245,196,81,.15)">🏛️</div><div class="et"><b>${CAR[x.car]} · IPVA ${esc(x.ano)}</b><span>${brl(num(x.valor))} · dividido em jan–mar</span></div><button class="del" data-ipv="${esc(x.id)}">×</button></div>`;
+  const cur=L.filter(x=>String(x.ano)>=y), old=L.filter(x=>String(x.ano)<y);
+  document.getElementById("fIpva").innerHTML=(cur.length?cur.map(row).join(""):`<div class="sub" style="padding:12px 0">Nenhum IPVA lançado para ${y} em diante — usando o padrão (ORA ${brl(S.ipvaOra)}, Civic ${brl(S.ipvaCiv)}).</div>`)+oldList(old.map(row));
+  formToggle("fIpva","+ Adicionar IPVA",`
+    <div class="field"><label>Carro</label><select class="iCar"><option value="ora">ORA 5</option><option value="civ">Civic (referência)</option></select></div>
+    <div class="field"><label>Ano</label><input class="iAno" inputmode="numeric" placeholder="${+y+1}"></div>
+    <div class="field"><label>Valor<small>R$ · IPVA + licenciamento</small></label><input class="iVal" inputmode="decimal" placeholder="0,00"></div>`,
+    el=>{el.querySelector(".iAno").value=+y+1},
+    el=>{const car=el.querySelector(".iCar").value,ano=el.querySelector(".iAno").value.trim(),v=num(el.querySelector(".iVal").value);
+      if(!/^\d{4}$/.test(ano))return toast("Informe o ano",false); if(v==null||v<0)return toast("Informe o valor",false);
+      S.ipvas=(S.ipvas||[]).filter(x=>!(x.car===car&&String(x.ano)===ano)).concat({id:"i"+Date.now().toString(36),car,ano,valor:v});saveSettings();buildSettings();toast("IPVA salvo ✓")});
+  delBtns("fIpva","ipv","ipvas");
 }
 document.getElementById("bCopy").onclick=async()=>{
   const txt=JSON.stringify({v:1,settings:S,entries:E});
