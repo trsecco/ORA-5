@@ -183,7 +183,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
     <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
     <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
-    <div class="sect">Conta de luz · custo efetivo do kWh</div>
+    <div class="sect">Contas de luz</div>
     <div class="glass" style="padding:2px 16px" id="fTar"></div>
     <div class="sect">Seguro e IPVA por ano</div>
     <div id="fAnos"></div>
@@ -221,15 +221,17 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
-  parcela:1200, nParc:75, seguroOra:3400, anos:{}, tarifas:{},
+  parcela:1200, nParc:75, seguroOra:3400, anos:{}, faturas:[],
   kmPlan:1000, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
-const tarM=k=>{const v=num((S.tarifas||{})[k]);return v>0?v:S.tarifa};
+const FAT=()=>(S.faturas||[]).filter(f=>f&&f.de&&f.ate&&num(f.tarifa)>0).sort((a,b)=>a.ate<b.ate?-1:1);
+const tarD=d=>{const L=FAT();const f=L.find(f=>d>f.de&&d<=f.ate);if(f)return{t:num(f.tarifa),f,fat:true};
+  const last=L[L.length-1];return last&&d>last.ate?{t:num(last.tarifa),f:last,fat:false}:{t:S.tarifa,f:null,fat:false}};
 const DEFY={seguroOra:"seguroOra",ipvaOra:"ipvaOra",seguroCiv:"seguroCiv",ipvaCiv:"ipvaCiv"};
 const yv=(y,k)=>{const o=(S.anos||{})[y];const v=o?num(o[k]):null;return v!=null&&v>=0?v:S[DEFY[k]]};
-const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarM(e.date.slice(0,7));
+const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarD(e.date).t;
 try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
 const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));localStorage.setItem("oc_e",JSON.stringify(E))}catch(e){}};
 
@@ -278,7 +280,7 @@ function compute(){
     if(k===start){const d0=+S.inicio.slice(8,10)||1;const dm=new Date(+k.slice(0,4),mi+1,0).getDate();frac=Math.max(0,Math.min(frac,(k===tk?today.getDate()-d0+1:dm-d0+1)/dm))}
     m.frac=frac;
     const ipvaM=mi<3;
-    const yr=k.slice(0,4); m.tar=tarM(k); m.tarFat=num((S.tarifas||{})[k])>0;
+    const yr=k.slice(0,4);
     m.civFix=(yv(yr,"seguroCiv")/12+(ipvaM?yv(yr,"ipvaCiv")/3:0)+S.manutCiv/12)*frac;
     m.oraFix=(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+yv(yr,"seguroOra")/12+(ipvaM?yv(yr,"ipvaOra")/3:0))*frac;
     m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
@@ -381,12 +383,12 @@ function drawHist(R){
     const items=m.items.slice().sort((a,b)=>a.date<b.date?1:-1);
     return `<div class="glass month">
       <div class="mrow"><span class="mname">${mname(m.k)}</span><span class="chip ${m.ecoFuel>=0?"g":"r"}">${m.ecoFuel>=0?"economia ":""}${brl(m.ecoFuel)}</span></div>
-      <div class="sub" style="margin-top:6px;font-size:12px">kWh em casa: <b>${brl2(m.tar)}</b> ${m.tarFat?"· da fatura":"· padrão (fatura não lançada)"}</div>
       <div class="mstats"><div>Km<b>${fmt(m.km)}</b></div><div>Gasolina Civic<b>${brl(m.civFuel)}</b></div><div>Energia ORA<b>${brl(m.energia)}</b></div></div>
       <div style="margin-top:10px">${items.length?items.map(e=>{
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
         const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
-        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
+        const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null;
+        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
         const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
         return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
@@ -422,8 +424,8 @@ function buildForm(){
     :"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.";
   const kwh=document.getElementById("fKwh"),val=document.getElementById("fVal"),loc=document.getElementById("fLocal");
   if(kwh){const dt=document.getElementById("fDate");const upd=()=>{const casa=loc.value==="casa";document.getElementById("valRow").style.display=casa?"none":"block";
-      if(casa){const mk=(dt.value||todayISO()).slice(0,7),t=tarM(mk),k=num(kwh.value);const fat=num((S.tarifas||{})[mk])>0;
-        hint.innerHTML=`Em casa o custo usa a tarifa de ${mname(mk)}: <b>${brl2(t)}/kWh</b> ${fat?"(da fatura)":"(padrão — atualize quando a conta chegar)"}${k?` → <b>${brl2(k*t)}</b>`:""}.`}
+      if(casa){const td=tarD(dt.value||todayISO()),k=num(kwh.value);
+        hint.innerHTML=`Tarifa usada: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória: última conta, até chegar a conta deste período)":"(padrão)"}${k?` → <b>${brl2(k*td.t)}</b>`:""}.`}
       else hint.textContent="No eletroposto, informe quanto pagou."};
     kwh.oninput=upd;loc.onchange=upd;dt.onchange=upd;upd()}
 }
@@ -473,7 +475,7 @@ const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaCiv","IPVA padrão","R$/ano · jan–mar","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
   fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · por ano abaixo","num"],["ipvaOra","IPVA padrão","R$/ano · jan–mar","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Tarifa padrão","R$/kWh · até lançar a fatura","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){
@@ -492,20 +494,42 @@ function buildSettings(){
   }));
 }
 function buildPeriods(){
-  const start=mkey(S.inicio), now=mkey(todayISO()), endM=now>start?now:start, ms=[];
-  for(let k=start;k<=endM;k=addM(k,1)) ms.push(k);
-  S.tarifas=S.tarifas||{}; S.anos=S.anos||{};
-  document.getElementById("fTar").innerHTML=ms.reverse().map(k=>{const v=num(S.tarifas[k]);
-    return `<div class="field"><label><span style="text-transform:capitalize">${mname(k)}</span><small>${v>0?"da fatura":"vazio = padrão "+brl2(S.tarifa)}</small></label><input data-tar="${k}" inputmode="decimal" placeholder="${fmt(S.tarifa,2)}" value="${v>0?fmt(v,2).replace(/\./g,""):""}"></div>`}).join("")
-    +`<div class="sub" style="padding:10px 0 12px">Na conta de luz: valor total ÷ kWh consumidos. Vale para as recargas em casa daquele mês.</div>`;
+  const start=mkey(S.inicio), now=mkey(todayISO());
+  S.faturas=S.faturas||[]; S.anos=S.anos||{};
+  const L=FAT().slice().reverse(), dd=d=>d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(2,4);
+  document.getElementById("fTar").innerHTML=(L.length?L.map(f=>`<div class="entry"><div class="ei" style="background:rgba(94,200,255,.15)">💡</div><div class="et"><b>Conta ${mlabel(f.ref)} · ${brl2(num(f.tarifa))}/kWh</b><span>leituras ${dd(f.de)} → ${dd(f.ate)}${f.kwh?" · "+fmt(num(f.kwh))+" kWh":""}</span></div><button class="del" data-fat="${esc(f.id)}">×</button></div>`).join(""):`<div class="sub" style="padding:12px 0">Nenhuma conta lançada.</div>`)+
+  `<div id="fatForm" style="display:none;border-top:1px solid var(--line)">
+    <div class="field"><label>Referência<small>mês da conta</small></label><input id="fRef" type="month"></div>
+    <div class="field"><label>Leitura anterior</label><input id="fDe" type="date"></div>
+    <div class="field"><label>Leitura atual</label><input id="fAte" type="date"></div>
+    <div class="field"><label>Valor da energia<small>R$ · sem iluminação pública</small></label><input id="fEn" inputmode="decimal" placeholder="0,00"></div>
+    <div class="field"><label>Consumo<small>kWh</small></label><input id="fKw" inputmode="decimal" placeholder="0"></div>
+    <div class="field"><label>Custo do kWh<small>calculado · pode editar</small></label><input id="fTa" inputmode="decimal" placeholder="0,00"></div>
+  </div>
+  <div style="display:flex;gap:8px;padding:12px 0"><button class="btn sm" id="fatAdd">+ Adicionar conta</button><button class="btn sm" id="fatCancel" style="display:none">Cancelar</button></div>
+  <div class="sub" style="padding:0 0 12px">Cada recarga em casa usa a conta cujo período de leitura inclui a data dela. Recargas depois da última leitura usam a última tarifa como provisória, até a próxima conta chegar.</div>`;
+  const ff=document.getElementById("fatForm"),add=document.getElementById("fatAdd"),cancel=document.getElementById("fatCancel");
+  const calc=()=>{const v=num(document.getElementById("fEn").value),k=num(document.getElementById("fKw").value);if(v>0&&k>0)document.getElementById("fTa").value=fmt(v/k,2)};
+  ["fEn","fKw"].forEach(id=>document.getElementById(id).oninput=calc);
+  const lastF=FAT()[FAT().length-1];
+  add.onclick=()=>{
+    if(ff.style.display==="none"){ff.style.display="block";cancel.style.display="block";add.textContent="Salvar conta";
+      if(lastF){document.getElementById("fDe").value=lastF.ate;document.getElementById("fRef").value=addM(lastF.ref,1)}return}
+    const ref=document.getElementById("fRef").value,de=document.getElementById("fDe").value,ate=document.getElementById("fAte").value,t=num(document.getElementById("fTa").value),k=num(document.getElementById("fKw").value),v=num(document.getElementById("fEn").value);
+    if(!/^\d{4}-\d{2}$/.test(ref))return toast("Informe a referência",false);
+    if(!de||!ate||ate<=de)return toast("Confira as datas de leitura",false);
+    if(!(t>0&&t<10))return toast("Informe o custo do kWh",false);
+    const f={id:"f"+Date.now().toString(36),ref,de,ate,tarifa:Math.round(t*10000)/10000};if(k>0)f.kwh=k;if(v>0)f.valor=v;
+    S.faturas=(S.faturas||[]).filter(x=>x.ref!==ref).concat(f);saveSettings();buildSettings();toast("Conta salva ✓")};
+  cancel.onclick=()=>buildSettings();
+  document.querySelectorAll("#fTar .del").forEach(b=>b.onclick=()=>{if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Apagar?";b.style.width="auto";b.style.padding="0 10px";return}
+    S.faturas=S.faturas.filter(f=>f.id!==b.dataset.fat);saveSettings();buildSettings()});
   const y0=+start.slice(0,4), y1=Math.max(+now.slice(0,4),y0)+1, ys=[];
   for(let y=y1;y>=y0;y--) ys.push(String(y));
   const F=[["seguroOra","Seguro ORA"],["ipvaOra","IPVA ORA"],["seguroCiv","Seguro Civic"],["ipvaCiv","IPVA Civic"]];
   document.getElementById("fAnos").innerHTML=ys.map(y=>`<div class="glass" style="padding:2px 16px;margin-bottom:10px"><div style="font-weight:700;padding:12px 0 2px">${y}</div>`+
     F.map(([f,l])=>{const o=S.anos[y]||{};const v=o[f]!=null&&o[f]!==""?num(o[f]):null;
       return `<div class="field"><label>${l}<small>${v!=null?"R$/ano":"vazio = padrão "+brl(S[f])}</small></label><input data-ano="${y}" data-f="${f}" inputmode="decimal" placeholder="${fmt(S[f])}" value="${v!=null?String(v).replace(".",","):""}"></div>`}).join("")+`</div>`).join("");
-  document.querySelectorAll("#fTar input").forEach(inp=>inp.addEventListener("input",()=>{const k=inp.dataset.tar,v=num(inp.value);
-    if(inp.value.trim()===""){delete S.tarifas[k]}else if(v!=null&&v>0&&v<10){S.tarifas[k]=v}else return; saveSettings()}));
   document.querySelectorAll("#fAnos input").forEach(inp=>inp.addEventListener("input",()=>{const y=inp.dataset.ano,f=inp.dataset.f,v=num(inp.value);
     S.anos[y]=S.anos[y]||{}; if(inp.value.trim()===""){delete S.anos[y][f]}else if(v!=null&&v>=0){S.anos[y][f]=v}else return;
     if(!Object.keys(S.anos[y]).length) delete S.anos[y]; saveSettings()}));
