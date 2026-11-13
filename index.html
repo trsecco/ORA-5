@@ -651,6 +651,11 @@ document.querySelectorAll(".tabbar button[data-v]").forEach(b=>b.onclick=()=>{
 });
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
+/* ======================= atualização automática ======================= */
+const APP_V="202611130657";
+async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
+  if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
+checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
 </script>
 </body>
 </html>
