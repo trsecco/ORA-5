@@ -96,12 +96,12 @@ details.old[open] summary{color:var(--tx)}
 .tb-beam:before{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--g);box-shadow:0 0 12px var(--g),0 0 24px var(--g)}
 .tb-beam:after{content:"";position:absolute;inset:3px 0 0;clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);background:linear-gradient(180deg,rgba(217,119,87,.32),rgba(217,119,87,0) 85%)}
 .tb-row{position:absolute;left:0;right:0;bottom:0;height:66px;display:flex;align-items:center;padding:0 6px}
-.tb-row button{flex:1;border:0;background:none;color:rgba(245,244,239,.5);font:600 10.5px Inter;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;transition:color .25s,transform .15s}
+.tb-row button{flex:1;border:0;background:none;color:rgba(245,244,239,.5);font:600 10.5px Inter;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 0;transition:color .25s,transform .15s}
 .tb-row button:active{transform:scale(.92)}
-.tb-row button svg{width:22px;height:22px;transition:filter .25s}
+.tb-row button svg{width:24px;height:24px;transition:filter .25s}
 .tb-row button.on{color:#fff}
 .tb-row button.on svg{color:var(--g);filter:drop-shadow(0 0 6px rgba(217,119,87,.7))}
-.tb-row .add{position:relative;top:-14px;color:#fff}
+.tb-row .add{position:relative;top:-12px;color:#fff;gap:6px}
 .tb-row .add .pl{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(217,119,87,.35),rgba(217,119,87,.08) 70%);box-shadow:inset 0 0 0 1.5px rgba(217,119,87,.55),0 0 22px rgba(217,119,87,.35);transition:transform .3s}
 .tb-row .add .pl svg{width:24px;height:24px;color:#fff;filter:drop-shadow(0 0 6px rgba(217,119,87,.9))}
 .tb-row .add i{display:block;width:4px;height:4px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g);margin-top:2px}
@@ -221,11 +221,11 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <div class="tb-glass" id="tbGlass"><div class="tb-beam" id="tbBeam"></div></div>
   <svg class="tb-svg" id="tbSvg"></svg>
   <div class="tb-row">
-    <button class="on" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Painel</button>
-    <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Histórico</button>
-    <button class="add" id="addBtn" aria-label="Novo lançamento"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Lançar<i></i></button>
-    <button data-v="custos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Custos</button>
-    <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+    <button class="on" data-v="home" aria-label="Painel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
+    <button data-v="hist" aria-label="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
+    <button class="add" id="addBtn" aria-label="Novo lançamento"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><i></i></button>
+    <button data-v="custos" aria-label="Custos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></button>
+    <button data-v="set" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
   </div>
 </nav>
 
