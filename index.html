@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ORA vs Civic">
+<meta name="apple-mobile-web-app-title" content="ORA 5">
 <meta name="theme-color" content="#141413">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.png?v=2">
-<title>ORA 5 vs Civic</title>
+<title>ORA 5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
 <style>
@@ -88,24 +88,25 @@ details.old[open] summary{color:var(--tx)}
 .btn{width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--tx);font:600 14px Inter}
 .btn.pri{background:var(--ac);border-color:transparent;color:#1a1918;box-shadow:none}
 .btn.sm{width:auto;padding:10px 14px;margin:0;font-size:13px}
-.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:5;width:min(94vw,440px);height:88px;--g:#d97757}
-.tb-glass{position:absolute;inset:0;background:rgba(31,30,29,.94);-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);overflow:hidden}
-.tb-glass:before{content:"";position:absolute;left:0;right:0;top:22px;height:30px;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent)}
-.tb-svg{position:absolute;inset:0;overflow:visible;pointer-events:none}
-.tb-beam{position:absolute;top:22px;width:64px;height:58px;margin-left:-32px;transition:left .45s cubic-bezier(.3,1.4,.5,1),opacity .3s;pointer-events:none}
-.tb-beam:before{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--g);box-shadow:0 0 12px var(--g),0 0 24px var(--g)}
-.tb-beam:after{content:"";position:absolute;inset:3px 0 0;clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);background:linear-gradient(180deg,rgba(217,119,87,.32),rgba(217,119,87,0) 85%)}
-.tb-row{position:absolute;left:0;right:0;bottom:0;height:66px;display:flex;align-items:center;padding:0 6px}
-.tb-row button{flex:1;border:0;background:none;color:rgba(245,244,239,.5);font:600 10.5px Inter;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 0;transition:color .25s,transform .15s}
-.tb-row button:active{transform:scale(.92)}
-.tb-row button svg{width:24px;height:24px;transition:filter .25s}
-.tb-row button.on{color:#fff}
-.tb-row button.on svg{color:var(--g);filter:drop-shadow(0 0 6px rgba(217,119,87,.7))}
-.tb-row .add{position:relative;top:-12px;color:#fff;gap:6px}
-.tb-row .add .pl{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(217,119,87,.35),rgba(217,119,87,.08) 70%);box-shadow:inset 0 0 0 1.5px rgba(217,119,87,.55),0 0 22px rgba(217,119,87,.35);transition:transform .3s}
-.tb-row .add .pl svg{width:24px;height:24px;color:#fff;filter:drop-shadow(0 0 6px rgba(217,119,87,.9))}
-.tb-row .add i{display:block;width:4px;height:4px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g);margin-top:2px}
-.sheet-on .tb-row .add .pl{transform:rotate(45deg)}
+.tabbar{position:fixed;left:16px;right:16px;max-width:440px;margin:0 auto;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:5;height:64px;border-radius:32px;
+  background:linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,.05) 55%,rgba(255,255,255,.08));
+  -webkit-backdrop-filter:blur(16px) saturate(180%) brightness(1.05);backdrop-filter:blur(16px) saturate(180%) brightness(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.2),inset 0 10px 18px -12px rgba(255,255,255,.25),0 12px 32px rgba(0,0,0,.5)}
+.tabbar:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% -40%,rgba(255,255,255,.18),transparent 60%),radial-gradient(40% 80% at 0% 50%,rgba(255,255,255,.07),transparent 70%),radial-gradient(40% 80% at 100% 50%,rgba(255,255,255,.07),transparent 70%)}
+.tb-pill{position:absolute;top:6px;height:52px;left:6px;width:60px;border-radius:26px;pointer-events:none;will-change:left,width,transform;
+  background:radial-gradient(90% 120% at 50% 0%,rgba(255,255,255,.22),rgba(255,255,255,.08) 70%);
+  -webkit-backdrop-filter:brightness(1.35) saturate(1.8) contrast(1.05);backdrop-filter:brightness(1.35) saturate(1.8) contrast(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 1px rgba(255,255,255,.1),inset 0 0 0 .5px rgba(255,255,255,.22),0 2px 8px rgba(0,0,0,.25);
+  transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.tabbar.press .tb-pill{transform:scale(1.1,1.12)}
+.tb-row{position:absolute;inset:0;display:flex;align-items:center;padding:0 6px}
+.tb-row button{flex:1;height:52px;border:0;background:none;color:rgba(245,244,239,.9);display:grid;place-items:center;padding:0;position:relative;z-index:1;transition:color .3s}
+.tb-row button svg{width:25px;height:25px;transition:transform .35s cubic-bezier(.3,1.8,.5,1)}
+.tb-row button.on{color:var(--ac)}
+.tb-row button:active svg{transform:scale(.84)}
+.tb-row .add svg{width:27px;height:27px;transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+.sheet-on .tb-row .add svg{transform:rotate(45deg)}
 .view{display:none;animation:fade .35s ease} .view.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .note{font-size:11.5px;color:var(--tx3);line-height:1.5;margin:14px 4px 0}
@@ -131,7 +132,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="hello">Olá, <b>Thiago</b> ⚡</div>
     <div class="pill" id="sync"><i></i><span>conectando…</span></div>
   </div>
-  <h1>ORA 5 <span>vs</span><br>Civic 2013</h1>
+  <h1>ORA 5</h1>
 
   <!-- ================= PAINEL ================= -->
   <section class="view on" id="v-home">
@@ -218,12 +219,11 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 </div>
 
 <nav class="tabbar" id="tabbar">
-  <div class="tb-glass" id="tbGlass"><div class="tb-beam" id="tbBeam"></div></div>
-  <svg class="tb-svg" id="tbSvg"></svg>
+  <div class="tb-pill" id="tbPill"></div>
   <div class="tb-row">
     <button class="on" data-v="home" aria-label="Painel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg></button>
     <button data-v="hist" aria-label="Histórico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button>
-    <button class="add" id="addBtn" aria-label="Novo lançamento"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><i></i></button>
+    <button class="add" id="addBtn" aria-label="Novo lançamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
     <button data-v="custos" aria-label="Custos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg></button>
     <button data-v="set" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
   </div>
@@ -627,32 +627,32 @@ document.getElementById("bImp").onclick=async()=>{
 };
 
 /* ======================= navegação ======================= */
-function tbShape(){
-  const nav=document.getElementById("tabbar"),W=nav.clientWidth,Ht=88,B=22,H=Ht-B,R=H/2,cx=W/2;
-  const d=`M${R},${B} L${cx-70},${B} C${cx-44},${B} ${cx-40},2 ${cx},2 C${cx+40},2 ${cx+44},${B} ${cx+70},${B} L${W-R},${B} A${R},${R} 0 0 1 ${W-R},${Ht} L${R},${Ht} A${R},${R} 0 0 1 ${R},${B} Z`;
-  const g=document.getElementById("tbGlass"); g.style.clipPath=g.style.webkitClipPath=`path("${d}")`;
-  document.getElementById("tbSvg").setAttribute("viewBox",`0 0 ${W} ${Ht}`);
-  document.getElementById("tbSvg").innerHTML=`<defs>
-    <linearGradient id="tbg" x1="0" x2="1"><stop offset="0" stop-color="#d97757" stop-opacity=".12"/><stop offset=".32" stop-color="#d97757" stop-opacity=".35"/><stop offset=".5" stop-color="#d97757" stop-opacity="1"/><stop offset=".68" stop-color="#d97757" stop-opacity=".35"/><stop offset="1" stop-color="#d97757" stop-opacity=".12"/></linearGradient>
-    <filter id="tbf" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5"/></filter></defs>
-    <path d="${d}" fill="none" stroke="url(#tbg)" stroke-width="3" filter="url(#tbf)" opacity=".9"/>
-    <path d="${d}" fill="none" stroke="url(#tbg)" stroke-width="1.3"/>
-    <path d="${d}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
-  moveBeam();
-}
-function moveBeam(){const on=document.querySelector(".tb-row button.on"),beam=document.getElementById("tbBeam");if(!on){beam.style.opacity=0;return}
-  const nav=document.getElementById("tabbar").getBoundingClientRect(),r=on.getBoundingClientRect();beam.style.opacity=1;beam.style.left=(r.left-nav.left+r.width/2)+"px"}
+let pillAt=null;
+function pillTarget(){const on=document.querySelector(".tb-row button.on"),nav=document.getElementById("tabbar");if(!on)return null;
+  const n=nav.getBoundingClientRect(),r=on.getBoundingClientRect();return{l:r.left-n.left,w:r.width}}
+function tbShape(){const t=pillTarget(),p=document.getElementById("tbPill");if(!t)return;p.style.left=t.l+"px";p.style.width=t.w+"px";pillAt=t}
+function movePill(){const t=pillTarget(),p=document.getElementById("tbPill");if(!t)return;const f=pillAt||t;
+  if(p.animate&&pillAt&&f.l!==t.l){const l=Math.min(f.l,t.l),r=Math.max(f.l+f.w,t.l+t.w);
+    p.animate([{left:f.l+"px",width:f.w+"px",transform:"scale(1,1)"},
+               {left:(t.l>f.l?f.l+ (t.l-f.l)*.25:l)+"px",width:(r-l)*.72+"px",transform:"scale(1,.86)",offset:.35},
+               {left:t.l+"px",width:t.w+"px",transform:"scale(1.08,.94)",offset:.7},
+               {left:t.l+"px",width:t.w+"px",transform:"scale(.97,1.03)",offset:.86},
+               {left:t.l+"px",width:t.w+"px",transform:"scale(1,1)"}],{duration:560,easing:"cubic-bezier(.3,.7,.3,1)"})}
+  p.style.left=t.l+"px";p.style.width=t.w+"px";pillAt=t}
 window.addEventListener("resize",tbShape);
-document.querySelectorAll(".tabbar button[data-v]").forEach(b=>b.onclick=()=>{
-  document.querySelectorAll(".tabbar button[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+(()=>{const nav=document.getElementById("tabbar");
+  nav.addEventListener("pointerdown",e=>{const b=e.target.closest("button[data-v]");if(b&&b.classList.contains("on"))nav.classList.add("press")});
+  ["pointerup","pointercancel","pointerleave"].forEach(ev=>nav.addEventListener(ev,()=>nav.classList.remove("press")));})();
+document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".tb-row button[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
   document.getElementById("v-"+b.dataset.v).classList.add("on");
-  window.scrollTo({top:0,behavior:"smooth"}); moveBeam(); render();
+  window.scrollTo({top:0,behavior:"smooth"}); movePill(); render();
 });
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
 /* ======================= atualização automática ======================= */
-const APP_V="202611130657";
+const APP_V="202611130711";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
