@@ -27,7 +27,7 @@ body{min-height:100vh;overflow-x:hidden}
   radial-gradient(60% 40% at 15% 0%,rgba(91,75,245,.38),transparent 70%),
   radial-gradient(50% 35% at 100% 30%,rgba(52,211,153,.12),transparent 70%),
   radial-gradient(70% 40% at 50% 110%,rgba(91,75,245,.22),transparent 70%)}
-.wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 120px)}
+.wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 130px)}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .hello{font-size:13px;color:var(--tx2)} .hello b{color:var(--tx)}
 .pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
@@ -90,12 +90,24 @@ details.old[open] summary{color:var(--tx)}
 .btn{width:100%;margin-top:12px;padding:14px;border-radius:14px;border:1px solid var(--line2);background:rgba(255,255,255,.06);color:var(--tx);font:600 14px Inter}
 .btn.pri{background:linear-gradient(135deg,#7c6bff,#4b3be0);border-color:rgba(255,255,255,.2);box-shadow:0 10px 30px -10px rgba(91,75,245,.8)}
 .btn.sm{width:auto;padding:10px 14px;margin:0;font-size:13px}
-.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:5;display:flex;gap:2px;padding:6px;border-radius:26px;width:min(94vw,440px);align-items:center}
-.tabbar button{flex:1;border:0;background:none;color:var(--tx3);font:600 10.5px Inter;padding:8px 2px 7px;border-radius:18px;display:flex;flex-direction:column;align-items:center;gap:4px}
-.tabbar button.on{color:#fff;background:rgba(139,123,255,.22)}
-.tabbar svg{width:21px;height:21px}
-.tabbar .add{flex:none;width:54px;height:54px;border-radius:18px;background:linear-gradient(135deg,#8b7bff,#4b3be0);color:#fff;display:grid;place-items:center;padding:0;margin:0 4px;box-shadow:0 8px 24px -6px rgba(91,75,245,.9)}
-.tabbar .add svg{width:26px;height:26px}
+.tabbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 10px);z-index:5;width:min(94vw,440px);height:88px;--g:#5eead4}
+.tb-glass{position:absolute;inset:0;background:linear-gradient(180deg,rgba(36,40,48,.82),rgba(14,16,22,.92));-webkit-backdrop-filter:blur(22px) saturate(160%);backdrop-filter:blur(22px) saturate(160%);overflow:hidden}
+.tb-glass:before{content:"";position:absolute;left:0;right:0;top:22px;height:30px;background:linear-gradient(180deg,rgba(255,255,255,.07),transparent)}
+.tb-svg{position:absolute;inset:0;overflow:visible;pointer-events:none}
+.tb-beam{position:absolute;top:22px;width:64px;height:58px;margin-left:-32px;transition:left .45s cubic-bezier(.3,1.4,.5,1),opacity .3s;pointer-events:none}
+.tb-beam:before{content:"";position:absolute;left:14px;right:14px;top:0;height:3px;border-radius:0 0 4px 4px;background:var(--g);box-shadow:0 0 12px var(--g),0 0 24px var(--g)}
+.tb-beam:after{content:"";position:absolute;inset:3px 0 0;clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);background:linear-gradient(180deg,rgba(94,234,212,.32),rgba(94,234,212,0) 85%)}
+.tb-row{position:absolute;left:0;right:0;bottom:0;height:66px;display:flex;align-items:center;padding:0 6px}
+.tb-row button{flex:1;border:0;background:none;color:rgba(244,244,251,.5);font:600 10.5px Inter;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;transition:color .25s,transform .15s}
+.tb-row button:active{transform:scale(.92)}
+.tb-row button svg{width:22px;height:22px;transition:filter .25s}
+.tb-row button.on{color:#fff}
+.tb-row button.on svg{color:var(--g);filter:drop-shadow(0 0 6px rgba(94,234,212,.7))}
+.tb-row .add{position:relative;top:-14px;color:#fff}
+.tb-row .add .pl{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,rgba(94,234,212,.35),rgba(94,234,212,.08) 70%);box-shadow:inset 0 0 0 1.5px rgba(94,234,212,.55),0 0 22px rgba(94,234,212,.35);transition:transform .3s}
+.tb-row .add .pl svg{width:24px;height:24px;color:#fff;filter:drop-shadow(0 0 6px rgba(94,234,212,.9))}
+.tb-row .add i{display:block;width:4px;height:4px;border-radius:50%;background:var(--g);box-shadow:0 0 8px var(--g);margin-top:2px}
+.sheet-on .tb-row .add .pl{transform:rotate(45deg)}
 .view{display:none;animation:fade .35s ease} .view.on{display:block}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .note{font-size:11.5px;color:var(--tx3);line-height:1.5;margin:14px 4px 0}
@@ -182,16 +194,20 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <section class="view" id="v-hist"><div id="histList"></div></section>
 
   <!-- ================= AJUSTES ================= -->
-  <section class="view" id="v-set">
-    <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
-    <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
-    <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
+  <section class="view" id="v-custos">
     <div class="sect">Contas de luz</div>
     <div class="glass" style="padding:2px 16px" id="fTar"></div>
     <div class="sect">Seguros</div>
     <div class="glass" style="padding:2px 16px" id="fSeg"></div>
     <div class="sect">IPVA</div>
     <div class="glass" style="padding:2px 16px" id="fIpva"></div>
+    <p class="note">Tudo aqui entra sozinho nos cálculos: a conta de luz pelo período de leitura, o seguro pelos dias da apólice e o IPVA dividido em jan–mar.</p>
+  </section>
+
+  <section class="view" id="v-set">
+    <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
+    <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
+    <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
     <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
@@ -203,11 +219,16 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   </section>
 </div>
 
-<nav class="tabbar glass">
-  <button class="on" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/></svg>Painel</button>
-  <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Histórico</button>
-  <button class="add" id="addBtn" aria-label="Novo lançamento"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-  <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+<nav class="tabbar" id="tabbar">
+  <div class="tb-glass" id="tbGlass"><div class="tb-beam" id="tbBeam"></div></div>
+  <svg class="tb-svg" id="tbSvg"></svg>
+  <div class="tb-row">
+    <button class="on" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Painel</button>
+    <button data-v="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Histórico</button>
+    <button class="add" id="addBtn" aria-label="Novo lançamento"><span class="pl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>Lançar<i></i></button>
+    <button data-v="custos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>Custos</button>
+    <button data-v="set"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Ajustes</button>
+  </div>
 </nav>
 
 <div class="sheetbg" id="sbg"></div>
@@ -449,8 +470,8 @@ function buildForm(){
     kwh.oninput=upd;loc.onchange=upd;dt.onchange=upd;upd()}
 }
 document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");ftype=b.dataset.t;buildForm()});
-function openSheet(){buildForm();document.getElementById("sbg").style.display="block";requestAnimationFrame(()=>document.getElementById("sheet").classList.add("open"))}
-function closeSheet(){document.getElementById("sheet").classList.remove("open");setTimeout(()=>document.getElementById("sbg").style.display="none",300)}
+function openSheet(){document.body.classList.add("sheet-on");buildForm();document.getElementById("sbg").style.display="block";requestAnimationFrame(()=>document.getElementById("sheet").classList.add("open"))}
+function closeSheet(){document.body.classList.remove("sheet-on");document.getElementById("sheet").classList.remove("open");setTimeout(()=>document.getElementById("sbg").style.display="none",300)}
 document.getElementById("addBtn").onclick=openSheet;
 document.getElementById("sbg").onclick=closeSheet;
 document.getElementById("saveBtn").onclick=async()=>{
@@ -608,14 +629,30 @@ document.getElementById("bImp").onclick=async()=>{
 };
 
 /* ======================= navegação ======================= */
+function tbShape(){
+  const nav=document.getElementById("tabbar"),W=nav.clientWidth,Ht=88,B=22,H=Ht-B,R=H/2,cx=W/2;
+  const d=`M${R},${B} L${cx-70},${B} C${cx-44},${B} ${cx-40},2 ${cx},2 C${cx+40},2 ${cx+44},${B} ${cx+70},${B} L${W-R},${B} A${R},${R} 0 0 1 ${W-R},${Ht} L${R},${Ht} A${R},${R} 0 0 1 ${R},${B} Z`;
+  const g=document.getElementById("tbGlass"); g.style.clipPath=g.style.webkitClipPath=`path("${d}")`;
+  document.getElementById("tbSvg").setAttribute("viewBox",`0 0 ${W} ${Ht}`);
+  document.getElementById("tbSvg").innerHTML=`<defs>
+    <linearGradient id="tbg" x1="0" x2="1"><stop offset="0" stop-color="#5eead4" stop-opacity=".12"/><stop offset=".32" stop-color="#5eead4" stop-opacity=".35"/><stop offset=".5" stop-color="#5eead4" stop-opacity="1"/><stop offset=".68" stop-color="#5eead4" stop-opacity=".35"/><stop offset="1" stop-color="#5eead4" stop-opacity=".12"/></linearGradient>
+    <filter id="tbf" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="3.5"/></filter></defs>
+    <path d="${d}" fill="none" stroke="url(#tbg)" stroke-width="3" filter="url(#tbf)" opacity=".9"/>
+    <path d="${d}" fill="none" stroke="url(#tbg)" stroke-width="1.3"/>
+    <path d="${d}" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="1"/>`;
+  moveBeam();
+}
+function moveBeam(){const on=document.querySelector(".tb-row button.on"),beam=document.getElementById("tbBeam");if(!on){beam.style.opacity=0;return}
+  const nav=document.getElementById("tabbar").getBoundingClientRect(),r=on.getBoundingClientRect();beam.style.opacity=1;beam.style.left=(r.left-nav.left+r.width/2)+"px"}
+window.addEventListener("resize",tbShape);
 document.querySelectorAll(".tabbar button[data-v]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabbar button[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
   document.getElementById("v-"+b.dataset.v).classList.add("on");
-  window.scrollTo({top:0,behavior:"smooth"}); render();
+  window.scrollTo({top:0,behavior:"smooth"}); moveBeam(); render();
 });
 window.addEventListener("resize",render);
-buildSettings(); render(); initDB();
+buildSettings(); render(); tbShape(); initDB();
 </script>
 </body>
 </html>
