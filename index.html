@@ -321,12 +321,13 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
-  parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,depOra:12,depCiv:5}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
+  parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,depOra1:15,depOra:7,depCiv:4}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
   kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
 const FAT=()=>(S.faturas||[]).filter(f=>f&&f.de&&f.ate&&num(f.tarifa)>0).sort((a,b)=>a.ate<b.ate?-1:1);
+if(S.ct&&S.ct.depOra1==null){S.ct.depOra1=15;if(S.ct.depOra===12)S.ct.depOra=7;if(S.ct.depCiv===5)S.ct.depCiv=4}
 const tarD=d=>{const L=FAT();const f=L.find(f=>d>f.de&&d<=f.ate);if(f)return{t:num(f.tarifa),f,fat:true};
   const last=L[L.length-1];return last&&d>last.ate?{t:num(last.tarifa),f:last,fat:false}:{t:S.tarifa,f:null,fat:false}};
 // migração do formato antigo (valores por ano)
@@ -530,7 +531,7 @@ function drawPat(){
   const ev=Math.ceil(pts.length/5);pts.forEach((p,i)=>{if((i%ev===0&&pts.length-1-i>ev*.85)||i===pts.length-1)s+=`<text x="${X(i)}" y="${H-6}" fill="rgba(245,244,239,.38)" font-size="9.5" text-anchor="${i===0?"start":i===pts.length-1?"end":"middle"}">${mlabel(p.mk)}</text>`});
   svg.innerHTML=s;
   const L=pts[pts.length-1];
-  document.getElementById("patSub").textContent=(PM==="r"?"Patrimônio + economia acumulada de rodagem (sem as parcelas)":"FIPE − saldo devedor")+` · projeção: ORA −${fmt(c.depOra)}%/ano, Civic −${fmt(c.depCiv)}%/ano`;
+  document.getElementById("patSub").textContent=(PM==="r"?"Patrimônio + economia acumulada de rodagem (sem as parcelas)":"FIPE − saldo devedor")+` · projeção: ORA −${fmt(c.depOra1)}% no 1º ano e −${fmt(c.depOra)}%/ano depois, Civic −${fmt(c.depCiv)}%/ano`;
   document.getElementById("patTxt").innerHTML=(cross>0?`O ORA passa o Civic ${PM==="r"?"(patrimônio + economia)":"em patrimônio"} em <b>${mname(pts[cross].mk)}</b>. `:pts[0].ora<pts[0].civ&&L.ora<L.civ?"Pela projeção, o ORA não passa o Civic até a última parcela. ":"")+
     `Na última parcela (${mname(L.mk)}): ORA <b>${brl(L.ora)}</b> × Civic <b>${brl(L.civ)}</b>.`+(PM==="r"?` Economia de rodagem acumulada até lá: <b>${brl(acc)}</b> (real até hoje, plano depois).`:"")+(I.gap>0?` <span style="color:var(--red)">Confira o contrato em Custos.</span>`:"");
 }
@@ -657,7 +658,9 @@ function saldoApos(k){const{P,n,pmt,i}=ctInfo();k=Math.max(0,Math.min(n,k));if(P
 function pagasAte(d){const st=parcStart();if(d<st)return 0;let k=monthsBetween(st,d)+1;if(+d.slice(8,10)<+st.slice(8,10))k--;return Math.max(0,Math.min(+S.nParc||0,k))}
 function fipeAt(car,mk){const c=CT(),h=(FIPE[car]&&FIPE[car].hist)||{},ks=Object.keys(h).sort();if(!ks.length)return 0;
   let b=ks.filter(k=>k<=mk).pop();if(!b)return h[ks[0]];if(b===mk||b!==ks[ks.length-1])return h[b];
-  const dep=(car==="ora"?c.depOra:c.depCiv)/100;return h[b]*Math.pow(1-dep,monthsBetween(b,mk)/12)}
+  if(car!=="ora")return h[b]*Math.pow(1-c.depCiv/100,monthsBetween(b,mk)/12);
+  const r1=Math.pow(1-c.depOra1/100,1/12),r2=Math.pow(1-c.depOra/100,1/12),arr=S.inicio.slice(0,7);let v=h[b];
+  for(let m=addM(b,1);m<=mk;m=addM(m,1)){if(m<=arr)continue;v*=monthsBetween(arr,m)<=12?r1:r2}return v}
 function patr(d){const mk=d.slice(0,7),c=CT(),civ=fipeAt("civic",mk)+c.cash;
   if(d<S.inicio)return{ora:civ,civ,k:0,pre:true};const k=pagasAte(d);return{ora:fipeAt("ora",mk)-saldoApos(k),civ,k}}
 function segInd(seg){const on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");if(!on||!ind)return;ind.style.width=on.offsetWidth+"px";ind.style.transform=`translateX(${on.offsetLeft-3}px)`}
@@ -895,7 +898,7 @@ function buildCt(){
   const c=CT(),I=ctInfo(),hoje=todayISO(),pt=patr(hoje),k=pt.k,st=parcStart();
   const F=[["preco","Preço do ORA 5","R$"],["civic","Valor do Civic na troca","R$ · comece pela FIPE"],["cash","Entrada em dinheiro","R$"]];
   const P2=[["parcela","Valor da parcela","R$/mês"],["nParc","Nº de parcelas",""]];
-  const D=[["depOra","Depreciação projetada ORA","%/ano · para a projeção"],["depCiv","Depreciação projetada Civic","%/ano · para a projeção"]];
+  const D=[["depOra1","Depreciação ORA · 1º ano","% · projeção"],["depOra","Depreciação ORA · anos seguintes","%/ano · projeção"],["depCiv","Depreciação Civic","%/ano · projeção"]];
   const f=(k,l,u,v,attr)=>`<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input ${attr} inputmode="decimal" value="${String(v).replace(".",",")}"></div>`;
   const fo=FIPE.ora||{},fc=FIPE.civic||{},lk=o=>{const ks=Object.keys((o&&o.hist)||{}).sort();return ks.length?ks[ks.length-1]:null};
   const lo=lk(fo),lc=lk(fc);
@@ -997,7 +1000,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141753";
+const APP_V="202611141826";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
