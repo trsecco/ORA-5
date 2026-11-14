@@ -282,7 +282,7 @@ const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
   parcela:1200, nParc:75, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
-  kmPlan:1000, bat:58.3, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
+  kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
@@ -456,7 +456,7 @@ function calcIV(){IV={};let po=S.odoIni,pr=null;
     const o=num(e.odo);
     if(o>0&&o>po){const km=o-po;const iv={km};
       if(e.type==="recarga"){let used=null;
-        if(pr&&pr.socFim!=null&&e.socIni!=null&&pr.socFim>e.socIni)used=(pr.socFim-e.socIni)/100*S.bat*(1+S.perdas/100);
+        if(pr&&pr.socFim!=null&&e.socIni!=null&&pr.socFim>e.socIni)used=(pr.socFim-e.socIni)/100*S.bat*(1+perdasEf()/100);
         else if(num(e.kwh)>0)used=num(e.kwh);
         if(used&&km>=20)iv.c=used/km*100}
       IV[e.id]=iv;po=o}
@@ -473,7 +473,7 @@ function drawHist(R){calcIV();
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
         const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
         const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null, iv=IV[e.id];
-        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", iv?"+"+fmt(iv.km)+" km"+(iv.c?" · "+fmt(iv.c,1)+" kWh/100km":""):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
+        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", e.kwhMed?"medidor ✓":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", iv?"+"+fmt(iv.km)+" km"+(iv.c?" · "+fmt(iv.c,1)+" kWh/100km":""):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
         const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
         return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
@@ -487,6 +487,10 @@ function drawHist(R){calcIV();
 let ftype="recarga", FS={};
 function lastOdo(){return E.reduce((a,e)=>Math.max(a,num(e.odo)||0),S.odoIni)}
 function lastRec(){return E.filter(e=>e.type==="recarga"&&e.socIni!=null).sort((a,b)=>a.created>b.created?1:-1).pop()}
+function lastMed(d){return E.filter(e=>num(e.med)>0&&(!d||e.date<=d)).reduce((a,e)=>Math.max(a,num(e.med)),0)}
+function perdasMed(){const L=E.filter(e=>e.kwhMed&&e.socIni!=null&&e.socFim>e.socIni&&num(e.kwh)>0);if(L.length<2)return null;
+  const bat=L.reduce((a,e)=>a+(e.socFim-e.socIni)/100*S.bat,0),w=L.reduce((a,e)=>a+num(e.kwh),0);return{p:Math.max(0,(w/bat-1)*100),n:L.length}}
+function perdasEf(){const m=perdasMed();return m?m.p:S.perdas}
 function segInd(seg){const on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");if(!on||!ind)return;ind.style.width=on.offsetWidth+"px";ind.style.transform=`translateX(${on.offsetLeft-3}px)`}
 function mkSeg(el,onChange){el.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.classList.contains("on"))return;el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");segInd(el);onChange(b.dataset.t||b.dataset.l)});requestAnimationFrame(()=>segInd(el))}
 function odoBlock(opt){const lo=lastOdo();return `<div class="odo">
@@ -526,6 +530,7 @@ function buildForm(){
     h+=`<div class="field"><label>Onde</label><div class="seg" id="locSeg" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
     <div class="bat"><div class="vals"><div class="lbl">Bateria</div><div class="big" id="batTxt"></div></div><div class="dual" id="dual"></div>
       <div class="calc"><div>Na bateria<b id="cBat">—</b></div><div>Da tomada<b id="cWall">—</b></div><div>Custo<b id="cCost">—</b></div></div>
+      <div id="medRow" style="display:none"><div class="field"><label>Leitura do medidor<small id="medSub">kWh acumulado</small></label><input id="fMed" inputmode="decimal" placeholder="0,0"></div></div>
       <div id="manRow" style="display:none">${row("fKwh","kWh do carregador","substitui o cálculo",'inputmode="decimal" placeholder="0,0"')}</div>
       <button class="link" id="manBtn">Informar kWh do carregador</button></div>
     <div id="valRow" style="display:none">${row("fVal","Valor pago","R$",'inputmode="decimal" placeholder="0,00"')}</div>`+odoBlock(true);
@@ -541,17 +546,22 @@ function buildForm(){
   if(ftype==="recarga"){
     const dt=document.getElementById("fDate");
     upd=()=>{const bat=(FS.b-FS.a)/100*S.bat, man=FS.manual?num(document.getElementById("fKwh").value):null;
-      const wall=man!=null&&man>0?man:bat*(1+S.perdas/100); FS.kwh=wall;
+      const useMed=S.medidor&&FS.local==="casa"&&!FS.manual; document.getElementById("medRow").style.display=useMed?"block":"none";
+      let med=null; FS.med=null; FS.medKwh=null;
+      if(useMed){const lm=lastMed(),v=num(document.getElementById("fMed").value);const sub=document.getElementById("medSub");
+        if(v>0){FS.med=v; if(lm>0&&v>lm){med=v-lm;FS.medKwh=med;sub.textContent="+"+fmt(med,1)+" kWh medidos"}else sub.textContent=lm>0?(v<=lm?"menor que a última ("+fmt(lm,1)+")":""):"primeira leitura: vira a referência"}
+        else sub.textContent=lm>0?"última: "+fmt(lm,1)+" kWh":"kWh acumulado"}
+      const wall=man!=null&&man>0?man:med!=null?med:bat*(1+perdasEf()/100); FS.kwh=wall;
       document.getElementById("batTxt").innerHTML=`${FS.a}%<small>→</small>${FS.b}%`;
       document.getElementById("cBat").textContent=fmt(bat,1)+" kWh";
-      document.getElementById("cWall").textContent=fmt(wall,1)+" kWh";
+      document.getElementById("cWall").textContent=fmt(wall,1)+" kWh"+(med!=null?" ✓":"");
       if(FS.local==="casa"){const td=tarD(dt.value||todayISO());document.getElementById("cCost").textContent=brl2(wall*td.t);
-        hint.innerHTML=`Tarifa: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória)":"(padrão)"} · perdas de recarga ${fmt(S.perdas)}% · bateria ${fmt(S.bat,1)} kWh.`}
+        hint.innerHTML=`Tarifa: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória)":"(padrão)"} · ${med!=null?"energia do medidor":"perdas de recarga "+fmt(perdasEf(),1)+"%"+(perdasMed()?" (medidas)":" (estimadas)")} · bateria ${fmt(S.bat,1)} kWh.`}
       else{const v=num((document.getElementById("fVal")||{}).value||"");document.getElementById("cCost").textContent=v?brl2(v):"—";hint.textContent="No eletroposto, informe quanto pagou. Se o carregador mostrar os kWh, use “Informar kWh do carregador”."}};
     mkSeg(document.getElementById("locSeg"),l=>{FS.local=l;document.getElementById("valRow").style.display=l==="rua"?"block":"none";upd()});
     dualSlider(document.getElementById("dual"),FS.a,FS.b,(a,b)=>{FS.a=a;FS.b=b;upd()});
     document.getElementById("manBtn").onclick=()=>{FS.manual=!FS.manual;document.getElementById("manRow").style.display=FS.manual?"block":"none";document.getElementById("manBtn").textContent=FS.manual?"Usar cálculo pela bateria":"Informar kWh do carregador";upd()};
-    document.getElementById("fKwh").oninput=upd; document.getElementById("fVal").oninput=upd; dt.onchange=upd;
+    document.getElementById("fKwh").oninput=upd; document.getElementById("fVal").oninput=upd; document.getElementById("fMed").oninput=upd; dt.onchange=upd;
   }
   if(ftype!=="despesa") wireOdo();
   upd();
@@ -584,7 +594,7 @@ document.getElementById("saveBtn").onclick=async()=>{
   const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
   const odo=ftype==="despesa"?null:(FS.odo||null);
   if(odo!=null){ e.odo=odo }
-  if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.manual)e.kwhManual=1;e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
+  if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.manual)e.kwhManual=1;if(FS.med){if(FS.med<lastMed(date)&&!FS.manual)return toast("Leitura do medidor menor que a anterior",false);e.med=FS.med;if(FS.medKwh)e.kwhMed=1}e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
@@ -619,13 +629,14 @@ const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
   fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","lança a leitura em kWh a cada recarga","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){
     document.getElementById(box).innerHTML=list.map(([k,l,u,t])=>{
       if(t==="bool") return `<div class="field"><label>${l}<small>${k==="gasAuto"&&GAS?esc("Última: "+brl2(GAS.preco)+" · "+(GAS.semana||"")):u}</small></label><button class="tog ${S[k]?"on":""}" data-b="${k}"><i></i></button></div>`;
       const dis=(k==="gas"&&S.gasAuto&&GAS)?"disabled":"";
+      if(k==="perdas"){const pm=perdasMed();if(pm)u=`medidas: ${fmt(pm.p,1)}% em ${pm.n} recargas · usadas no cálculo`}
       return `<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${dis} ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`}).join("");
   }
   buildPeriods();
@@ -758,7 +769,7 @@ document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
 /* ======================= atualização automática ======================= */
-const APP_V="202611140949";
+const APP_V="202611141000";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
