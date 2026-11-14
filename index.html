@@ -42,6 +42,10 @@ h1 span{color:var(--orange)}
 .sub{font-size:13px;color:var(--tx2);line-height:1.45}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px}
 .chip.g{background:rgba(92,184,138,.14);color:var(--green)} .chip.r{background:rgba(224,122,110,.14);color:var(--red)} .chip.v{background:rgba(255,255,255,.07);color:var(--tx2)}
+.cmp{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx2);margin-top:12px}
+.cmp span{width:42px}.cmp .tr{flex:1;height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+.cmp .f{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.32,.72,0,1)}
+.cmp b{width:78px;text-align:right;color:var(--tx);font-variant-numeric:tabular-nums}
 .prog{height:8px;border-radius:99px;background:rgba(255,255,255,.07);margin:14px 0 8px;position:relative;overflow:visible}
 .prog .f{height:100%;border-radius:99px;background:linear-gradient(90deg,#3f8f69,#5cb88a);max-width:100%}
 .prog .mk{position:absolute;top:-4px;width:2px;height:16px;background:#fff;border-radius:2px;opacity:.7}
@@ -183,11 +187,18 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <!-- ================= PAINEL ================= -->
   <section class="view on" id="v-home">
     <div class="glass hero">
-      <div class="lbl">Economia real em combustível</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div class="lbl" id="hLbl">Economia real geral</div>
+        <div class="seg" id="heroSeg" style="width:198px;flex:none"><div class="ind"></div><button data-t="ger">Geral</button><button data-t="fuel">Combustível</button></div>
+      </div>
       <div class="big" id="hVal">R$ 0</div>
       <div class="sub" id="hSub">—</div>
-      <div class="prog"><div class="f" id="hBar" style="width:0"></div><div class="mk" id="hMk" style="left:0"></div></div>
-      <div class="progl"><span id="hL">real</span><span id="hR">plano</span></div>
+      <div id="hFuel"><div class="prog"><div class="f" id="hBar" style="width:0"></div><div class="mk" id="hMk" style="left:0"></div></div>
+        <div class="progl"><span id="hL">real</span><span id="hR">plano</span></div></div>
+      <div id="hGer" style="display:none">
+        <div class="cmp"><span>Civic</span><div class="tr"><div class="f" id="gCiv" style="background:linear-gradient(90deg,#4a4844,#b8b5ab)"></div></div><b id="gCivV"></b></div>
+        <div class="cmp"><span>ORA 5</span><div class="tr"><div class="f" id="gOra" style="background:linear-gradient(90deg,#a9502f,#e8a48a)"></div></div><b id="gOraV"></b></div>
+        <div class="progl" style="margin-top:10px"><span id="gL"></span><span id="gR"></span></div></div>
     </div>
 
     <div id="homeEmpty"></div>
@@ -373,7 +384,8 @@ function compute(){
     const ipvaM=mi<3;
     const yr=k.slice(0,4);
     m.civFix=m.segCiv+((ipvaM?ipvaAno("civ",yr)/3:0)+S.manutCiv/12)*frac;
-    m.oraFix=m.segOra+(((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)+(ipvaM?ipvaAno("ora",yr)/3:0))*frac;
+    m.parc=((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)*frac;
+    m.oraFix=m.segOra+m.parc+(ipvaM?ipvaAno("ora",yr)/3:0)*frac;
     m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
     m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
     m.planFuel=planFuelEco*frac;
@@ -383,7 +395,7 @@ function compute(){
   const sum=f=>L.reduce((a,m)=>a+m[f],0);
   return {L,months,started:tk>=start,
     km:sum("km"),kwh:sum("kwh"),energia:sum("energia"),civFuel:sum("civFuel"),
-    ecoFuel:sum("ecoFuel"),planFuel:sum("planFuel"),civTot:sum("civTot"),oraTot:sum("oraTot"),ecoTot:sum("ecoTot"),planTot:sum("planTot"),
+    ecoFuel:sum("ecoFuel"),planFuel:sum("planFuel"),civTot:sum("civTot"),oraTot:sum("oraTot"),ecoTot:sum("ecoTot"),planTot:sum("planTot"),parc:sum("parc"),desp:sum("desp"),
     kmPlan:L.reduce((a,m)=>a+S.kmPlan*m.frac,0),planFuelEco};
 }
 
@@ -392,6 +404,23 @@ function render(){
   const R=compute();
   const has=E.length>0;
   // hero
+  let HM="ger"; try{HM=localStorage.getItem("oc_hero")||"ger"}catch(e){}
+  document.querySelectorAll("#heroSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===HM)); segInd(document.getElementById("heroSeg"));
+  document.getElementById("hFuel").style.display=HM==="fuel"?"block":"none";
+  document.getElementById("hGer").style.display=HM==="ger"?"block":"none";
+  if(HM==="ger"){
+    const v=R.ecoTot, sp=R.ecoTot+R.parc, dp=R.ecoTot-R.planTot;
+    document.getElementById("hLbl").textContent=v>=0||!has?"Economia real geral":"Custo extra real do ORA";
+    document.getElementById("hVal").textContent=brl(Math.abs(v)); document.getElementById("hVal").style.color=v>=0?"var(--tx)":"var(--red)";
+    document.getElementById("hSub").innerHTML=!R.started?`Começa a contar em <b>${mname(mkey(S.inicio))}</b>. Inclui energia, mensalidade, seguro, IPVA, manutenção e despesas, comparados com o Civic nos mesmos km.`
+      :`Tudo incluído: energia, mensalidade, seguro, IPVA, manutenção e despesas, comparados com o Civic nos mesmos km.`;
+    const mx=Math.max(R.civTot,R.oraTot,1);
+    document.getElementById("gCiv").style.width=(R.civTot/mx*100)+"%"; document.getElementById("gOra").style.width=(R.oraTot/mx*100)+"%";
+    document.getElementById("gCivV").textContent=brl(R.civTot); document.getElementById("gOraV").textContent=brl(R.oraTot);
+    document.getElementById("gL").innerHTML=R.started&&has?`<span class="chip ${dp>=0?"g":"r"}">${dp>=0?"+":"−"}${brl(Math.abs(dp))} vs plano</span>`:"";
+    document.getElementById("gR").innerHTML=R.parc>0?`sem a mensalidade: <b style="color:${sp>=0?"var(--green)":"var(--red)"}">${sp>=0?"+":"−"}${brl(Math.abs(sp))}</b>`:"";
+  } else {
+  document.getElementById("hLbl").textContent="Economia real em combustível";
   document.getElementById("hVal").textContent=brl(R.ecoFuel);
   document.getElementById("hVal").style.color=R.ecoFuel>=0?"var(--tx)":"var(--red)";
   const pct=R.planFuel>0?R.ecoFuel/R.planFuel:0;
@@ -405,6 +434,7 @@ function render(){
   document.getElementById("hMk").style.left=`calc(${mk*100}% - 1px)`;
   document.getElementById("hL").innerHTML=R.planFuel>0&&has?`<span class="chip ${pct>=1?"g":"r"}">${fmt(pct*100)}% do plano</span>`:"real";
   document.getElementById("hR").textContent="plano até hoje: "+brl(R.planFuel);
+  }
 
   document.getElementById("homeEmpty").innerHTML=has?"":`<div class="glass card empty"><div class="e1">⚡</div><p>Toque no <b>+</b> para lançar sua primeira recarga ou a leitura do odômetro. A economia é calculada comparando com o que o Civic gastaria de gasolina nos mesmos km.</p><button class="btn pri" onclick="openSheet()">Fazer primeiro lançamento</button></div>`;
 
@@ -867,9 +897,10 @@ document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
 });
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
+mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141023";
+const APP_V="202611141034";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
