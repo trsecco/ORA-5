@@ -104,8 +104,8 @@ details.old[open] summary{color:var(--tx)}
 .btn.pri{background:var(--ac);border-color:transparent;color:#1a1918;box-shadow:none}
 .btn.sm{width:auto;padding:10px 14px;margin:0;font-size:13px}
 .tabbar{position:fixed;left:16px;right:16px;max-width:440px;margin:0 auto;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:5;height:64px;border-radius:32px;
-  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01) 55%,rgba(255,255,255,.025));
-  -webkit-backdrop-filter:blur(6px) saturate(170%) brightness(1.1);backdrop-filter:blur(6px) saturate(170%) brightness(1.1);
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 55%,rgba(255,255,255,.012));
+  -webkit-backdrop-filter:blur(3px) saturate(160%) brightness(1.1);backdrop-filter:blur(3px) saturate(160%) brightness(1.1);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.2),inset 0 10px 18px -12px rgba(255,255,255,.25),0 12px 32px rgba(0,0,0,.5)}
 .tabbar:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(120% 90% at 50% -40%,rgba(255,255,255,.18),transparent 60%),radial-gradient(40% 80% at 0% 50%,rgba(255,255,255,.07),transparent 70%),radial-gradient(40% 80% at 100% 50%,rgba(255,255,255,.07),transparent 70%)}
@@ -1000,7 +1000,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141838";
+const APP_V="202611141839";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
