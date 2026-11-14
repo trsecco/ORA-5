@@ -198,7 +198,10 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <div id="hGer" style="display:none">
         <div class="cmp"><span>Civic</span><div class="tr"><div class="f" id="gCiv" style="background:linear-gradient(90deg,#4a4844,#b8b5ab)"></div></div><b id="gCivV"></b></div>
         <div class="cmp"><span>ORA 5</span><div class="tr"><div class="f" id="gOra" style="background:linear-gradient(90deg,#a9502f,#e8a48a)"></div></div><b id="gOraV"></b></div>
-        <div class="progl" style="margin-top:10px"><span id="gL"></span><span id="gR"></span></div></div>
+        <div class="lbl" style="margin-top:14px">Patrimônio hoje</div>
+        <div class="cmp" style="margin-top:6px"><span>Civic</span><div class="tr"><div class="f" id="pCiv" style="background:linear-gradient(90deg,#4a4844,#b8b5ab)"></div></div><b id="pCivV"></b></div>
+        <div class="cmp"><span>ORA 5</span><div class="tr"><div class="f" id="pOra" style="background:linear-gradient(90deg,#a9502f,#e8a48a)"></div></div><b id="pOraV"></b></div>
+        <div class="progl" style="margin-top:12px"><span id="gL"></span><span id="gR"></span></div></div>
     </div>
 
     <div id="homeEmpty"></div>
@@ -222,6 +225,12 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       </div>
     </div>
 
+    <div class="glass card" id="patCard">
+      <div class="ch"><div><h3>Patrimônio</h3><p id="patSub">FIPE − saldo devedor · projeção até a última parcela</p></div>
+        <div class="legend"><span><i style="background:#9b978d"></i>Civic</span><span><i style="background:var(--ac)"></i>ORA</span></div></div>
+      <svg id="pat" width="100%" height="200"></svg>
+      <div class="sub" id="patTxt" style="margin-top:6px;font-size:12px"></div>
+    </div>
     <div id="charts">
     <div class="glass card">
       <div class="ch"><div><h3>Economia acumulada</h3><p>Combustível: real × planejado</p></div>
@@ -259,6 +268,8 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <section class="view" id="v-custos">
     <div class="sect">Contas de luz</div>
     <div class="glass" style="padding:2px 16px" id="fTar"></div>
+    <div class="sect">Contrato e patrimônio</div>
+    <div class="glass" style="padding:2px 16px" id="fCt"></div>
     <div class="sect">Seguros</div>
     <div class="glass" style="padding:2px 16px" id="fSeg"></div>
     <div class="sect">IPVA</div>
@@ -309,7 +320,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
-  parcela:1200, nParc:75, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
+  parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,ini:"",depOra:12,depCiv:5}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
   kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
@@ -384,7 +395,7 @@ function compute(){
     const ipvaM=mi<3;
     const yr=k.slice(0,4);
     m.civFix=m.segCiv+((ipvaM?ipvaAno("civ",yr)/3:0)+S.manutCiv/12)*frac;
-    m.parc=((S.nParc>0&&m.i>=S.nParc)?0:S.parcela)*frac;
+    { const lim=k===tk?todayISO():k>tk?"":mE; m.parc=lim?(pagasAte(lim)-pagasAte(isoU(dU(mS)-DAY)))*(+S.parcela||0):0; }
     m.oraFix=m.segOra+m.parc+(ipvaM?ipvaAno("ora",yr)/3:0)*frac;
     m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
     m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
@@ -409,16 +420,19 @@ function render(){
   document.getElementById("hFuel").style.display=HM==="fuel"?"block":"none";
   document.getElementById("hGer").style.display=HM==="ger"?"block":"none";
   if(HM==="ger"){
-    const v=R.ecoTot, sp=R.ecoTot+R.parc, dp=R.ecoTot-R.planTot;
-    document.getElementById("hLbl").textContent=v>=0||!has?"Economia real geral":"Custo extra real do ORA";
-    document.getElementById("hVal").textContent=brl(Math.abs(v)); document.getElementById("hVal").style.color=v>=0?"var(--tx)":"var(--red)";
-    document.getElementById("hSub").innerHTML=!R.started?`Começa a contar em <b>${mname(mkey(S.inicio))}</b>. Inclui energia, mensalidade, seguro, IPVA, manutenção e despesas, comparados com o Civic nos mesmos km.`
-      :`Tudo incluído: energia, mensalidade, seguro, IPVA, manutenção e despesas, comparados com o Civic nos mesmos km.`;
+    const pt=patr(todayISO()), dpat=pt.ora-pt.civ, v=R.ecoTot+dpat;
+    document.getElementById("hLbl").textContent=v>=0?"Resultado real":"Resultado real (perda)";
+    document.getElementById("hVal").textContent=(v>=0?"+":"−")+brl(Math.abs(v)); document.getElementById("hVal").style.color=v>=0?"var(--green)":"var(--red)";
+    document.getElementById("hSub").innerHTML=(!R.started?`O uso começa a contar em <b>${mname(mkey(S.inicio))}</b>. `:"")+`Custos (energia, parcelas, seguro, IPVA, manutenção e despesas) + patrimônio (FIPE − saldo devedor), comparados com ficar com o Civic.`;
     const mx=Math.max(R.civTot,R.oraTot,1);
     document.getElementById("gCiv").style.width=(R.civTot/mx*100)+"%"; document.getElementById("gOra").style.width=(R.oraTot/mx*100)+"%";
     document.getElementById("gCivV").textContent=brl(R.civTot); document.getElementById("gOraV").textContent=brl(R.oraTot);
-    document.getElementById("gL").innerHTML=R.started&&has?`<span class="chip ${dp>=0?"g":"r"}">${dp>=0?"+":"−"}${brl(Math.abs(dp))} vs plano</span>`:"";
-    document.getElementById("gR").innerHTML=R.parc>0?`sem a mensalidade: <b style="color:${sp>=0?"var(--green)":"var(--red)"}">${sp>=0?"+":"−"}${brl(Math.abs(sp))}</b>`:"";
+    const px=Math.max(pt.ora,pt.civ,1);
+    document.getElementById("pCiv").style.width=(Math.max(0,pt.civ)/px*100)+"%"; document.getElementById("pOra").style.width=(Math.max(0,pt.ora)/px*100)+"%";
+    document.getElementById("pCivV").textContent=brl(pt.civ); document.getElementById("pOraV").textContent=brl(pt.ora);
+    const ch=(l,x)=>`<span class="chip ${x>=0?"g":"r"}">${l} ${x>=0?"+":"−"}${brl(Math.abs(x))}</span>`;
+    document.getElementById("gL").innerHTML=ch("custos",R.ecoTot);
+    document.getElementById("gR").innerHTML=ch("patrimônio",dpat);
   } else {
   document.getElementById("hLbl").textContent="Economia real em combustível";
   document.getElementById("hVal").textContent=brl(R.ecoFuel);
@@ -460,7 +474,7 @@ function render(){
     ` no total até agora. O plano previa ${R.planTot<0?brl(-R.planTot)+" a mais":brl(R.planTot)+" a menos"} para o mesmo período.`;
 
   document.getElementById("charts").style.display=has?"block":"none";
-  drawHist(R); if(has){drawCum(R); drawBars(R); drawEff()}
+  drawHist(R); if(has){drawCum(R); drawBars(R); drawEff()} drawPat();
 }
 
 function drawCum(R){
@@ -482,6 +496,31 @@ function drawCum(R){
   svg.innerHTML=s;
 }
 
+function drawPat(){
+  const svg=document.getElementById("pat");if(!svg)return;const W=svg.clientWidth||340,H=200,pl=40,pb=22,pt=12;
+  const st=parcStart(),n=+S.nParc||0,hoje=todayISO(),c=CT(),I=ctInfo();
+  const pts=[];for(let k=0;k<=n;k++){const mk=addM(st.slice(0,7),k),d=mk+"-"+st.slice(8,10);
+    pts.push({k,mk,ora:fipeAt("ora",mk)-saldoApos(k),civ:fipeAt("civic",mk)+c.cash,fut:d>hoje})}
+  if(pts.length<2){svg.innerHTML="";return}
+  const all=pts.flatMap(p=>[p.ora,p.civ]),mn=Math.min(...all)*.95,mx=Math.max(...all)*1.04;
+  const X=i=>pl+(W-pl-10)*i/(pts.length-1),Y=v=>H-pb-(v-mn)/(mx-mn)*(H-pb-pt);
+  let s="";const stp=niceStep((mx-mn)/4);
+  for(let v=Math.ceil(mn/stp)*stp;v<=mx;v+=stp){const y=Y(v);s+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)"/><text x="${pl-6}" y="${y+3}" fill="rgba(245,244,239,.38)" font-size="9.5" text-anchor="end">${fmt(v/1000)}k</text>`}
+  const ip=pts.findIndex(p=>p.fut), cut=ip<0?pts.length-1:Math.max(0,ip-1);
+  const path=(f,a,b)=>pts.slice(a,b+1).map((p,j)=>(j?"L":"M")+X(a+j).toFixed(1)+","+Y(p[f]).toFixed(1)).join("");
+  ["civ","ora"].forEach(f=>{const col=f==="ora"?"#d97757":"#9b978d";
+    if(cut>0)s+=`<path d="${path(f,0,cut)}" fill="none" stroke="${col}" stroke-width="2.4" stroke-linecap="round"/>`;
+    s+=`<path d="${path(f,cut,pts.length-1)}" fill="none" stroke="${col}" stroke-width="2" stroke-dasharray="4 5" stroke-linecap="round" opacity=".85"/>`});
+  if(ip!==0){const x=X(cut);s+=`<line x1="${x}" x2="${x}" y1="${pt}" y2="${H-pb}" stroke="rgba(245,244,239,.25)"/><text x="${x+4}" y="${pt+8}" fill="rgba(245,244,239,.5)" font-size="9.5">hoje</text>`}
+  const cross=pts.findIndex((p,i)=>i>0&&(pts[i-1].ora-pts[i-1].civ)*(p.ora-p.civ)<0);
+  if(cross>0)s+=`<circle cx="${X(cross)}" cy="${Y(pts[cross].ora)}" r="4.5" fill="#141413" stroke="#5cb88a" stroke-width="2"/>`;
+  const ev=Math.ceil(pts.length/5);pts.forEach((p,i)=>{if((i%ev===0&&pts.length-1-i>ev*.6)||i===pts.length-1)s+=`<text x="${X(i)}" y="${H-6}" fill="rgba(245,244,239,.38)" font-size="9.5" text-anchor="${i===0?"start":i===pts.length-1?"end":"middle"}">${mlabel(p.mk)}</text>`});
+  svg.innerHTML=s;
+  const L=pts[pts.length-1];
+  document.getElementById("patSub").textContent=`FIPE − saldo devedor · projeção: ORA −${fmt(c.depOra)}%/ano, Civic −${fmt(c.depCiv)}%/ano`;
+  document.getElementById("patTxt").innerHTML=(cross>0?`O ORA passa o Civic em patrimônio em <b>${mname(pts[cross].mk)}</b>. `:pts[0].ora<pts[0].civ&&L.ora<L.civ?"Pela projeção, o ORA não passa o Civic até a última parcela. ":"")+
+    `Na última parcela (${mname(L.mk)}): ORA <b>${brl(L.ora)}</b> × Civic <b>${brl(L.civ)}</b>.`+(I.gap>0?` <span style="color:var(--red)">Confira o contrato em Custos.</span>`:"");
+}
 let EFF={d:0,y:"z"};
 function drawEff(){
   segInd(document.getElementById("effSeg"));segInd(document.getElementById("effY"));
@@ -592,6 +631,21 @@ function lastMed(d){return E.filter(e=>num(e.med)>0&&(!d||e.date<=d)).reduce((a,
 function perdasMed(){const L=E.filter(e=>e.kwhMed&&e.socIni!=null&&e.socFim>e.socIni&&num(e.kwh)>0);if(L.length<2)return null;
   const bat=L.reduce((a,e)=>a+(e.socFim-e.socIni)/100*S.bat,0),w=L.reduce((a,e)=>a+num(e.kwh),0);return{p:Math.max(0,(w/bat-1)*100),n:L.length}}
 function perdasEf(){const m=perdasMed();return m?m.p:S.perdas}
+/* ======================= contrato e patrimônio ======================= */
+let FIPE={ora:{hist:{"2026-11":162318}},civic:{hist:{"2026-11":71094}}};
+const CT=()=>({...DEF.ct,...(S.ct||{})});
+const monthsBetween=(a,b)=>(+b.slice(0,4)-+a.slice(0,4))*12+(+b.slice(5,7)-+a.slice(5,7));
+function parcStart(){const c=CT();if(c.ini)return c.ini;const r=E.filter(e=>e.type==="recarga").map(e=>e.date).sort()[0];return r||S.inicio}
+function ctInfo(){const c=CT(),n=+S.nParc||0,pmt=+S.parcela||0,P=c.preco-c.civic-c.cash;let i=0,gap=0;
+  if(P>0&&n>0&&pmt>0){if(n*pmt>P+1){let lo=0,hi=.1;for(let k=0;k<80;k++){const m=(lo+hi)/2,pv=pmt*(1-Math.pow(1+m,-n))/m;if(pv>P)lo=m;else hi=m}i=(lo+hi)/2}else gap=P-n*pmt}
+  return{P,n,pmt,i,gap}}
+function saldoApos(k){const{P,n,pmt,i}=ctInfo();k=Math.max(0,Math.min(n,k));if(P<=0)return 0;
+  const sd=i>0?P*Math.pow(1+i,k)-pmt*(Math.pow(1+i,k)-1)/i:P-k*pmt;return Math.max(0,sd)}
+function pagasAte(d){const st=parcStart();if(d<st)return 0;let k=monthsBetween(st,d)+1;if(+d.slice(8,10)<+st.slice(8,10))k--;return Math.max(0,Math.min(+S.nParc||0,k))}
+function fipeAt(car,mk){const c=CT(),h=(FIPE[car]&&FIPE[car].hist)||{},ks=Object.keys(h).sort();if(!ks.length)return 0;
+  let b=ks.filter(k=>k<=mk).pop();if(!b)return h[ks[0]];if(b===mk||b!==ks[ks.length-1])return h[b];
+  const dep=(car==="ora"?c.depOra:c.depCiv)/100;return h[b]*Math.pow(1-dep,monthsBetween(b,mk)/12)}
+function patr(d){const mk=d.slice(0,7),c=CT(),k=pagasAte(d);return{ora:fipeAt("ora",mk)-saldoApos(k),civ:fipeAt("civic",mk)+c.cash,k}}
 function segInd(seg){const on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");if(!on||!ind)return;ind.style.width=on.offsetWidth+"px";ind.style.transform=`translateX(${on.offsetLeft-3}px)`}
 function mkSeg(el,onChange){el.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.classList.contains("on"))return;el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");segInd(el);onChange(b.dataset.t||b.dataset.l)});requestAnimationFrame(()=>segInd(el))}
 function odoBlock(opt){const lo=lastOdo();return `<div class="odo">
@@ -751,13 +805,14 @@ async function initDB(){
       if(p>0){GAS={preco:p,semana:d.semana||"",fonte:d.fonte||""};const old=S.gas;applyGas();cache();
         if(!document.querySelector("#v-set input:focus"))buildSettings();render();if(old!==S.gas)saveSettings()}}
   }catch(e){}
+  try{const r=await fetch("fipe.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d.ora&&d.civic){FIPE=d;buildSettings();render()}}}catch(e){}
 }
 function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
 /* ======================= ajustes ======================= */
 const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
-  fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
+  fFix:[["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
   fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","mostra o slider de kWh medidos em cada recarga em casa","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
@@ -809,7 +864,7 @@ function buildPeriods(){
   cancel.onclick=()=>buildSettings();
   document.querySelectorAll("#fTar .del").forEach(b=>b.onclick=()=>{if(!b.dataset.sure){b.dataset.sure=1;b.textContent="Apagar?";b.style.width="auto";b.style.padding="0 10px";return}
     S.faturas=S.faturas.filter(f=>f.id!==b.dataset.fat);saveSettings();buildSettings()});
-  buildSeg(); buildIpva();
+  buildCt(); buildSeg(); buildIpva();
 }
 const CAR={ora:"ORA 5",civ:"Civic"}, dd2=d=>d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(2,4);
 function oldList(rows){return rows.length?`<details class="old"><summary>Anteriores (${rows.length}) ▾</summary>${rows.join("")}</details>`:""}
@@ -821,6 +876,33 @@ function formToggle(box,label,html,onOpen,onSave){
   const f=el.querySelector(".xf"),a=el.querySelector(".xa"),c=el.querySelector(".xc");
   a.onclick=()=>{if(f.style.display==="none"){f.style.display="block";c.style.display="block";a.textContent="Salvar";onOpen&&onOpen(el);return}onSave(el)};
   c.onclick=()=>buildSettings();
+}
+function buildCt(){
+  const c=CT(),I=ctInfo(),hoje=todayISO(),pt=patr(hoje),k=pt.k,st=parcStart();
+  const F=[["preco","Preço do ORA 5","R$"],["civic","Valor do Civic na troca","R$ · comece pela FIPE"],["cash","Entrada em dinheiro","R$"]];
+  const P2=[["parcela","Valor da parcela","R$/mês"],["nParc","Nº de parcelas",""]];
+  const D=[["depOra","Depreciação projetada ORA","%/ano · para a projeção"],["depCiv","Depreciação projetada Civic","%/ano · para a projeção"]];
+  const f=(k,l,u,v,attr)=>`<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input ${attr} inputmode="decimal" value="${String(v).replace(".",",")}"></div>`;
+  const fo=FIPE.ora||{},fc=FIPE.civic||{},lk=o=>{const ks=Object.keys((o&&o.hist)||{}).sort();return ks.length?ks[ks.length-1]:null};
+  const lo=lk(fo),lc=lk(fc);
+  let h=F.map(([k,l,u])=>f(k,l,u,c[k],`data-ct="${k}"`)).join("")+P2.map(([k,l,u])=>f(k,l,u,S[k],`data-k2="${k}"`)).join("")+
+   `<div class="field"><label>Início dos pagamentos<small>${c.ini?"definido":"automático: data da 1ª recarga"}</small></label><input type="date" data-ct="ini" value="${c.ini||""}" placeholder="${st}"></div>`+
+   D.map(([k,l,u])=>f(k,l,u,c[k],`data-ct="${k}"`)).join("");
+  const tx=I.i>0?`${fmt(I.i*100,2)}% a.m. (${fmt((Math.pow(1+I.i,12)-1)*100,1)}% a.a.)`:"0% (sem juros)";
+  h+=`<div class="det open" style="display:block"><div class="din" style="padding:4px 0 12px">
+    <div><span>Valor financiado</span><b>${brl(I.P)}</b></div>
+    <div><span>Juros implícitos</span><b>${tx}</b></div>
+    <div><span>Parcelas pagas</span><b>${k} de ${I.n} · ${fmt(I.n?k/I.n*100:0)}%</b></div>
+    <div><span>Saldo devedor hoje</span><b>${brl(saldoApos(k))}</b></div>
+    <div><span>FIPE ORA 5${lo?" ("+mlabel(lo)+")":""}</span><b>${brl(fipeAt("ora",hoje.slice(0,7)))}</b></div>
+    <div><span>FIPE Civic${lc?" ("+mlabel(lc)+")":""}</span><b>${brl(fipeAt("civic",hoje.slice(0,7)))}</b></div>
+    <div class="hl"><span>Patrimônio hoje: ORA × Civic</span><b style="color:${pt.ora>=pt.civ?"var(--green)":"var(--red)"}">${brl(pt.ora)} × ${brl(pt.civ)}</b></div>
+    ${I.gap>0?`<div><span style="color:var(--red)">Atenção: as parcelas (${fmt(I.n)} × ${brl(I.pmt)} = ${brl(I.n*I.pmt)}) não cobrem o financiado. Faltam ${brl(I.gap)} de entrada.</span></div>`:""}
+  </div></div>`;
+  document.getElementById("fCt").innerHTML=h;
+  document.querySelectorAll("#fCt [data-ct]").forEach(inp=>inp.addEventListener("change",()=>{const k=inp.dataset.ct;S.ct=CT();
+    if(k==="ini"){S.ct.ini=inp.value||""}else{const v=num(inp.value);if(v==null||v<0)return;S.ct[k]=v}saveSettings();buildCt()}));
+  document.querySelectorAll("#fCt [data-k2]").forEach(inp=>inp.addEventListener("change",()=>{const v=num(inp.value);if(v==null||v<0)return;S[inp.dataset.k2]=v;saveSettings();buildCt()}));
 }
 function buildSeg(){
   const t=todayISO(), L=(S.seguros||[]).slice().sort((a,b)=>a.de<b.de?1:-1);
@@ -900,7 +982,7 @@ buildSettings(); render(); tbShape(); initDB();
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141034";
+const APP_V="202611141058";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
