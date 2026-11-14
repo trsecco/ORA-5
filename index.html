@@ -530,9 +530,12 @@ function buildForm(){
     h+=`<div class="field"><label>Onde</label><div class="seg" id="locSeg" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
     <div class="bat"><div class="vals"><div class="lbl">Bateria</div><div class="big" id="batTxt"></div></div><div class="dual" id="dual"></div>
       <div class="calc"><div>Na bateria<b id="cBat">—</b></div><div>Da tomada<b id="cWall">—</b></div><div>Custo<b id="cCost">—</b></div></div>
-      <div id="medRow" style="display:none"><div class="field"><label>Leitura do medidor<small id="medSub">kWh acumulado</small></label><input id="fMed" inputmode="decimal" placeholder="0,0"></div></div>
-      <div id="manRow" style="display:none">${row("fKwh","kWh do carregador","substitui o cálculo",'inputmode="decimal" placeholder="0,0"')}</div>
-      <button class="link" id="manBtn">Informar kWh do carregador</button></div>
+      <div id="kRow" class="odo" style="display:none;border-top:0;padding-top:8px">
+        <div class="lbl" style="display:flex;justify-content:space-between"><span id="kLbl">Energia medida</span><span id="kSub" style="color:var(--tx3)"></span></div>
+        <div class="row"><button class="st" data-k="-0.1">−</button><input class="num" id="fKwh" inputmode="decimal"><button class="st" data-k="0.1">+</button></div>
+        <input type="range" id="kR" min="0" max="70" step="0.1" value="0">
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx3)"><span>0 kWh</span><span>70 kWh</span></div></div>
+      <button class="link" id="manBtn"></button></div>
     <div id="valRow" style="display:none">${row("fVal","Valor pago","R$",'inputmode="decimal" placeholder="0,00"')}</div>`+odoBlock(true);
   } else if(ftype==="km"){
     h+=odoBlock(false);
@@ -545,23 +548,32 @@ function buildForm(){
   hint.textContent=ftype==="km"?"Lance quando quiser atualizar os km sem recarregar.":ftype==="despesa"?"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.":"";
   if(ftype==="recarga"){
     const dt=document.getElementById("fDate");
-    upd=()=>{const bat=(FS.b-FS.a)/100*S.bat, man=FS.manual?num(document.getElementById("fKwh").value):null;
-      const useMed=S.medidor&&FS.local==="casa"&&!FS.manual; document.getElementById("medRow").style.display=useMed?"block":"none";
-      let med=null; FS.med=null; FS.medKwh=null;
-      if(useMed){const lm=lastMed(),v=num(document.getElementById("fMed").value);const sub=document.getElementById("medSub");
-        if(v>0){FS.med=v; if(lm>0&&v>lm){med=v-lm;FS.medKwh=med;sub.textContent="+"+fmt(med,1)+" kWh medidos"}else sub.textContent=lm>0?(v<=lm?"menor que a última ("+fmt(lm,1)+")":""):"primeira leitura: vira a referência"}
-        else sub.textContent=lm>0?"última: "+fmt(lm,1)+" kWh":"kWh acumulado"}
-      const wall=man!=null&&man>0?man:med!=null?med:bat*(1+perdasEf()/100); FS.kwh=wall;
+    FS.measure=!!S.medidor; FS.kTouched=false;
+    upd=()=>{const bat=(FS.b-FS.a)/100*S.bat, est=bat*(1+perdasEf()/100);
+      const kr=document.getElementById("kR"),ki=document.getElementById("fKwh");
+      document.getElementById("kRow").style.display=FS.measure?"block":"none";
+      document.getElementById("manBtn").textContent=FS.measure?"Usar só o cálculo pela bateria":(FS.local==="casa"?"Informar kWh medidos":"Informar kWh do carregador");
+      document.getElementById("kLbl").textContent=FS.local==="casa"?"Energia medida":"kWh do carregador";
+      if(FS.measure&&!FS.kTouched){kr.value=Math.min(70,Math.round(est*10)/10);if(document.activeElement!==ki)ki.value=fmt(+kr.value,1)}
+      const k=FS.measure&&FS.kTouched?num(ki.value):null;
+      document.getElementById("kSub").textContent=FS.measure?(FS.kTouched?"medido":"estimativa · ajuste"):"";
+      const med=k!=null&&k>0?k:null;
+      const wall=med!=null?med:est; FS.kwh=wall; FS.medKwh=med;
       document.getElementById("batTxt").innerHTML=`${FS.a}%<small>→</small>${FS.b}%`;
       document.getElementById("cBat").textContent=fmt(bat,1)+" kWh";
       document.getElementById("cWall").textContent=fmt(wall,1)+" kWh"+(med!=null?" ✓":"");
       if(FS.local==="casa"){const td=tarD(dt.value||todayISO());document.getElementById("cCost").textContent=brl2(wall*td.t);
-        hint.innerHTML=`Tarifa: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória)":"(padrão)"} · ${med!=null?"energia do medidor":"perdas de recarga "+fmt(perdasEf(),1)+"%"+(perdasMed()?" (medidas)":" (estimadas)")} · bateria ${fmt(S.bat,1)} kWh.`}
+        hint.innerHTML=`Tarifa: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória)":"(padrão)"} · ${med!=null?"energia medida":"perdas de recarga "+fmt(perdasEf(),1)+"%"+(perdasMed()?" (medidas)":" (estimadas)")} · bateria ${fmt(S.bat,1)} kWh.`}
       else{const v=num((document.getElementById("fVal")||{}).value||"");document.getElementById("cCost").textContent=v?brl2(v):"—";hint.textContent="No eletroposto, informe quanto pagou. Se o carregador mostrar os kWh, use “Informar kWh do carregador”."}};
-    mkSeg(document.getElementById("locSeg"),l=>{FS.local=l;document.getElementById("valRow").style.display=l==="rua"?"block":"none";upd()});
+    mkSeg(document.getElementById("locSeg"),l=>{FS.local=l;FS.measure=l==="casa"?!!S.medidor:false;FS.kTouched=false;document.getElementById("valRow").style.display=l==="rua"?"block":"none";upd()});
     dualSlider(document.getElementById("dual"),FS.a,FS.b,(a,b)=>{FS.a=a;FS.b=b;upd()});
-    document.getElementById("manBtn").onclick=()=>{FS.manual=!FS.manual;document.getElementById("manRow").style.display=FS.manual?"block":"none";document.getElementById("manBtn").textContent=FS.manual?"Usar cálculo pela bateria":"Informar kWh do carregador";upd()};
-    document.getElementById("fKwh").oninput=upd; document.getElementById("fVal").oninput=upd; document.getElementById("fMed").oninput=upd; dt.onchange=upd;
+    document.getElementById("manBtn").onclick=()=>{FS.measure=!FS.measure;FS.kTouched=false;upd()};
+    const kr=document.getElementById("kR"),ki=document.getElementById("fKwh");
+    kr.oninput=()=>{FS.kTouched=true;ki.value=fmt(+kr.value,1);upd()};
+    ki.oninput=()=>{FS.kTouched=true;const v=num(ki.value);if(v!=null)kr.value=Math.max(0,Math.min(70,v));upd()};
+    ki.onblur=()=>{const v=num(ki.value);if(v!=null)ki.value=fmt(v,1)};
+    document.querySelectorAll("#kRow .st").forEach(b=>b.onclick=()=>{FS.kTouched=true;const v=Math.max(0,Math.min(70,Math.round(((num(ki.value)||0)+ +b.dataset.k)*10)/10));ki.value=fmt(v,1);kr.value=v;upd()});
+    document.getElementById("fVal").oninput=upd; dt.onchange=upd;
   }
   if(ftype!=="despesa") wireOdo();
   upd();
@@ -594,7 +606,7 @@ document.getElementById("saveBtn").onclick=async()=>{
   const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
   const odo=ftype==="despesa"?null:(FS.odo||null);
   if(odo!=null){ e.odo=odo }
-  if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.manual)e.kwhManual=1;if(FS.med){if(FS.med<lastMed(date)&&!FS.manual)return toast("Leitura do medidor menor que a anterior",false);e.med=FS.med;if(FS.medKwh)e.kwhMed=1}e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
+  if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.medKwh!=null){if(FS.local==="casa")e.kwhMed=1;else e.kwhManual=1}e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
@@ -629,7 +641,7 @@ const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
   fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","lança a leitura em kWh a cada recarga","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","mostra o slider de kWh medidos em cada recarga em casa","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){
@@ -769,7 +781,7 @@ document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
 /* ======================= atualização automática ======================= */
-const APP_V="202611141000";
+const APP_V="202611141004";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
