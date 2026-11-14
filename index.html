@@ -70,6 +70,16 @@ svg text{font-family:Inter,sans-serif}
 .entry .et{flex:1;min-width:0} .entry .et b{font-size:13.5px;font-weight:600;display:block}
 .entry .et span{font-size:11.5px;color:var(--tx3)}
 .entry .ev{font-size:13.5px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.entry.tap{cursor:pointer}
+.chev{display:inline-block;font-style:normal;color:var(--tx3);margin-left:6px;transition:transform .35s cubic-bezier(.32,.72,0,1)}
+.entry.open .chev{transform:rotate(90deg)}
+.det{display:grid;grid-template-rows:0fr;transition:grid-template-rows .4s cubic-bezier(.32,.72,0,1)}
+.det.open{grid-template-rows:1fr}
+.det .din{overflow:hidden}
+.det .din div{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:7px 2px;color:var(--tx2);border-top:1px dashed rgba(255,255,255,.06)}
+.det .din div b{color:var(--tx);font-weight:600;text-align:right}
+.det .din div.hl b{color:var(--green)}
+.det.open .din{padding:2px 0 10px 46px}
 .del{border:0;background:rgba(224,122,110,.12);color:var(--red);width:28px;height:28px;border-radius:9px;font-size:16px;line-height:1;flex:none}
 .field{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:12px}
 .field:last-child{border-bottom:0}
@@ -130,7 +140,7 @@ details.old[open] summary{color:var(--tx)}
 /* segmented com indicador deslizante */
 .seg{position:relative}
 .seg .ind{position:absolute;top:3px;bottom:3px;left:3px;border-radius:9px;background:var(--card2);box-shadow:inset 0 0 0 1px var(--line2),0 1px 3px rgba(0,0,0,.3);transition:transform .38s cubic-bezier(.32,.72,0,1),width .38s cubic-bezier(.32,.72,0,1)}
-.seg button{position:relative;z-index:1;transition:color .25s}
+.seg button{position:relative;z-index:1;transition:color .25s;white-space:nowrap}
 .seg button.on{background:none!important;box-shadow:none!important;color:#fff}
 /* bateria */
 .bat{margin:6px 0 4px;padding:14px 0 6px}
@@ -207,6 +217,12 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <svg id="cum" width="100%" height="190"></svg>
     </div>
 
+    <div class="glass card">
+      <div class="ch"><div><h3>Eficiência do carregador</h3><p id="effSub">Energia que entrou na bateria ÷ energia medida</p></div><span class="chip" id="effChip"></span></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px"><div class="seg" id="effSeg" style="flex:1"><div class="ind"></div><button data-t="90">3M</button><button data-t="180">6M</button><button data-t="365">1A</button><button data-t="0" class="on">Tudo</button></div>
+        <div class="seg" id="effY" style="width:118px"><div class="ind"></div><button data-t="z" class="on">Zoom</button><button data-t="f">0–100</button></div></div>
+      <svg id="eff" width="100%" height="190"></svg>
+    </div>
     <div class="glass card">
       <div class="ch"><div><h3>Conta completa</h3><p>Com mensalidade, seguro, IPVA e manutenção</p></div></div>
       <div class="grid2" style="margin-top:0">
@@ -413,7 +429,7 @@ function render(){
     ` no total até agora. O plano previa ${R.planTot<0?brl(-R.planTot)+" a mais":brl(R.planTot)+" a menos"} para o mesmo período.`;
 
   document.getElementById("charts").style.display=has?"block":"none";
-  drawHist(R); if(has){drawCum(R); drawBars(R)}
+  drawHist(R); if(has){drawCum(R); drawBars(R); drawEff()}
 }
 
 function drawCum(R){
@@ -435,6 +451,32 @@ function drawCum(R){
   svg.innerHTML=s;
 }
 
+let EFF={d:0,y:"z"};
+function drawEff(){
+  segInd(document.getElementById("effSeg"));segInd(document.getElementById("effY"));
+  const svg=document.getElementById("eff"),W=svg.clientWidth||340,H=190,pl=36,pb=22,pt=12;
+  const all=E.map(e=>({e,v:effOf(e)})).filter(x=>x.v!=null).sort((a,b)=>a.e.date<b.e.date?-1:1);
+  const cut=EFF.d?isoU(Date.now()-EFF.d*DAY):"0000";
+  const P=all.filter(x=>x.e.date>=cut).map(x=>({t:dU(x.e.date),v:x.v*100,d:x.e.date}));
+  const chip=document.getElementById("effChip"),sub=document.getElementById("effSub");
+  if(!P.length){svg.innerHTML=`<text x="${W/2}" y="${H/2-6}" fill="rgba(245,244,239,.45)" font-size="12.5" text-anchor="middle">Ainda sem recargas medidas${EFF.d?" neste período":""}.</text><text x="${W/2}" y="${H/2+14}" fill="rgba(245,244,239,.3)" font-size="11" text-anchor="middle">Ligue o medidor em Ajustes e ajuste o slider de kWh.</text>`;chip.textContent="";chip.className="chip";return}
+  const avg=P.reduce((a,p)=>a+p.v,0)/P.length;
+  let trend=null; if(P.length>=4){const h=Math.floor(P.length/2),a1=P.slice(0,h),a2=P.slice(-h);trend=a2.reduce((a,p)=>a+p.v,0)/h-a1.reduce((a,p)=>a+p.v,0)/h}
+  chip.className="chip "+(trend==null?"v":trend>=-0.5?"g":"r");
+  chip.style.whiteSpace="nowrap";chip.textContent=`${fmt(avg,1)}%`+(trend==null?"":` · ${trend>=0?"+":"−"}${fmt(Math.abs(trend),1)} p.p.`);
+  sub.textContent=`${P.length} recarga${P.length>1?"s":""} medida${P.length>1?"s":""} · bateria ÷ tomada`;
+  let lo,hi; if(EFF.y==="f"){lo=0;hi=100}else{const mn=Math.min(...P.map(p=>p.v)),mx=Math.max(...P.map(p=>p.v));lo=Math.max(0,Math.floor((mn-3)/2)*2);hi=Math.min(105,Math.ceil((mx+3)/2)*2);if(hi-lo<8){lo=Math.max(0,hi-8)}}
+  const t0=P[0].t,t1=P[P.length-1].t||t0+1, X=t=>pl+(W-pl-12)*(t1>t0?(t-t0)/(t1-t0):.5), Y=v=>H-pb-(v-lo)/(hi-lo)*(H-pb-pt);
+  let s="";const st=niceStep((hi-lo)/4);
+  for(let v=Math.ceil(lo/st)*st;v<=hi;v+=st){const y=Y(v);s+=`<line x1="${pl}" x2="${W}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.06)"/><text x="${pl-6}" y="${y+3}" fill="rgba(245,244,239,.38)" font-size="9.5" text-anchor="end">${fmt(v)}%</text>`}
+  s+=`<line x1="${pl}" x2="${W}" y1="${Y(avg)}" y2="${Y(avg)}" stroke="rgba(245,244,239,.25)" stroke-dasharray="3 4"/>`;
+  // média móvel (5)
+  const mm=P.map((p,i)=>{const w=P.slice(Math.max(0,i-4),i+1);return{t:p.t,v:w.reduce((a,x)=>a+x.v,0)/w.length}});
+  if(P.length>1)s+=`<path d="${mm.map((p,i)=>(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p.v).toFixed(1)).join("")}" fill="none" stroke="#d97757" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`;
+  P.forEach(p=>{s+=`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.2" fill="#141413" stroke="#e8a48a" stroke-width="1.6"/>`});
+  const ticks=Math.min(4,P.length);for(let i=0;i<ticks;i++){const p=P[Math.round(i*(P.length-1)/Math.max(1,ticks-1))];s+=`<text x="${X(p.t)}" y="${H-6}" fill="rgba(245,244,239,.38)" font-size="9.5" text-anchor="${i===0?"start":i===ticks-1?"end":"middle"}">${p.d.slice(8,10)}/${p.d.slice(5,7)}</text>`}
+  svg.innerHTML=s;
+}
 function drawBars(R){
   const svg=document.getElementById("bars"),W=svg.clientWidth||340,H=200,pl=36,pb=22,pt=10;
   const L=R.L.slice(-12); if(!L.length){svg.innerHTML="";return}
@@ -450,6 +492,28 @@ function drawBars(R){
 }
 
 const ICON={recarga:["⚡","rgba(92,184,138,.15)"],km:["🛣️","rgba(217,119,87,.18)"],despesa:["🧾","rgba(255,255,255,.06)"]};
+const OPEN=new Set();
+const effOf=e=>{if(!e.kwhMed||e.socIni==null||!(e.socFim>e.socIni)||!(num(e.kwh)>0))return null;return (e.socFim-e.socIni)/100*S.bat/num(e.kwh)};
+function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.push(`<div${h?' class="hl"':''}><span>${l}</span><b>${v}</b></div>`)};
+  const d=e.date.split("-").reverse().join("/");
+  if(e.type==="recarga"){const kb=e.socIni!=null?(e.socFim-e.socIni)/100*S.bat:null, kw=num(e.kwh)||0, ef=effOf(e), cost=custoRec(e);
+    add("Data",d); add("Local",e.local==="rua"?"Eletroposto":"Em casa");
+    if(e.socIni!=null) add("Bateria",`${e.socIni}% → ${e.socFim}% (+${e.socFim-e.socIni}%)`);
+    if(kb!=null) add("Energia na bateria",fmt(kb,1)+" kWh");
+    add("Energia da tomada",fmt(kw,1)+" kWh "+(e.kwhMed?"· medida":e.kwhManual?"· do carregador":"· estimada"));
+    if(ef!=null){add("Eficiência do carregador",fmt(ef*100,1)+"%",true); add("Perdas na recarga",fmt(kw-kb,1)+" kWh ("+fmt((1/ef-1)*100,1)+"%)")}
+    else if(kb!=null) add("Eficiência do carregador","sem medição (estimativa "+fmt(100/(1+perdasEf()/100),1)+"%)");
+    add("Custo",brl2(cost)); if(td) add("Tarifa",brl2(td.t)+"/kWh "+(td.fat?"· conta "+mlabel(td.f.ref):"· provisória"));
+    if(kb) add("Custo por kWh na bateria",brl2(cost/kb));
+    if(iv){add("Km desde a leitura anterior",fmt(iv.km)+" km"); if(iv.c){add("Consumo no trecho",fmt(iv.c,1)+" kWh/100 km");add("Custo por km",brl2(cost/iv.km))}
+      const g=iv.km/(e.kml??S.kml)*(e.gas??S.gas); add("Civic gastaria no trecho",brl2(g)+" de gasolina"); add("Economia no trecho",brl2(g-cost),true)}
+    if(kb&&iv&&iv.c) add("Autonomia desta carga","≈ "+fmt(kb*(1+perdasEf()/100)/iv.c*100)+" km");
+    if(num(e.odo)>0) add("Odômetro",fmt(num(e.odo))+" km");
+  } else if(e.type==="km"){add("Data",d); add("Odômetro",fmt(num(e.odo))+" km");
+    if(iv){add("Km desde a leitura anterior",fmt(iv.km)+" km");const g=iv.km/(e.kml??S.kml)*(e.gas??S.gas);add("Civic gastaria no trecho",brl2(g)+" de gasolina")}
+  } else {add("Data",d); add("Categoria",esc(e.cat||"Despesa")); add("Valor",brl2(num(e.valor)||0)); if(e.desc) add("Descrição",esc(e.desc))}
+  if(e.gas) add("Gasolina de referência",brl2(e.gas)+"/L · "+fmt(e.kml??S.kml,1)+" km/l");
+  return D.join("")}
 let IV={};
 function calcIV(){IV={};let po=S.odoIni,pr=null;
   E.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0)).forEach(e=>{
@@ -473,11 +537,15 @@ function drawHist(R){calcIV();
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
         const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
         const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null, iv=IV[e.id];
-        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", e.kwhMed?"medidor ✓":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", iv?"+"+fmt(iv.km)+" km"+(iv.c?" · "+fmt(iv.c,1)+" kWh/100km":""):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
+        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", iv?"+"+fmt(iv.km)+" km":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
         const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
-        return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
+        const op=OPEN.has(e.id);
+        return `<div class="entry tap${op?" open":""}" data-open="${esc(e.id)}"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}<i class="chev">›</i></div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>
+        <div class="det${op?" open":""}" id="det-${esc(e.id)}"><div class="din">${detail(e,iv,td)}</div></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
-  box.querySelectorAll(".del").forEach(b=>b.onclick=()=>{
+  box.querySelectorAll(".entry.tap").forEach(el=>el.onclick=ev=>{if(ev.target.closest(".del"))return;const id=el.dataset.open,d=document.getElementById("det-"+id);
+    const o=!OPEN.has(id); if(o)OPEN.add(id);else OPEN.delete(id); el.classList.toggle("open",o); d.classList.toggle("open",o)});
+  box.querySelectorAll(".del").forEach(b=>b.onclick=ev=>{ev.stopPropagation();
     if(b.dataset.sure){removeEntry(b.dataset.id);return}
     b.dataset.sure=1;b.textContent="?";b.style.width="auto";b.style.padding="0 10px";b.textContent="Apagar?";
     setTimeout(()=>{if(b.isConnected){delete b.dataset.sure;b.textContent="×";b.style.width="28px";b.style.padding="0"}},3000)});
@@ -780,8 +848,9 @@ document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
 });
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
+mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141004";
+const APP_V="202611141010";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
