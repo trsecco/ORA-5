@@ -79,6 +79,7 @@ svg text{font-family:Inter,sans-serif}
 .det .din div{display:flex;justify-content:space-between;gap:12px;font-size:12.5px;padding:7px 2px;color:var(--tx2);border-top:1px dashed rgba(255,255,255,.06)}
 .det .din div b{color:var(--tx);font-weight:600;text-align:right}
 .det .din div.hl b{color:var(--green)}
+.det .din div.acts{border-top:0;justify-content:flex-end;padding-top:10px}
 .det.open .din{padding:2px 0 10px 46px}
 .del{border:0;background:rgba(224,122,110,.12);color:var(--red);width:28px;height:28px;border-radius:9px;font-size:16px;line-height:1;flex:none}
 .field{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--line);gap:12px}
@@ -284,7 +285,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 <div class="sheet" id="sheet">
   <div class="head" id="sheetHead">
     <div class="grab"></div>
-    <h2>Novo lançamento</h2>
+    <h2 id="sheetTitle">Novo lançamento</h2>
     <div class="seg" id="typeSeg"><div class="ind"></div><button data-t="recarga" class="on">⚡ Recarga</button><button data-t="km">🛣️ Odômetro</button><button data-t="despesa">🧾 Despesa</button></div>
   </div>
   <div class="body" id="sheetBody"><div id="form"></div><div class="sub" id="formHint" style="margin:10px 0 16px"></div></div>
@@ -513,6 +514,7 @@ function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.pus
     if(iv){add("Km desde a leitura anterior",fmt(iv.km)+" km");const g=iv.km/(e.kml??S.kml)*(e.gas??S.gas);add("Civic gastaria no trecho",brl2(g)+" de gasolina")}
   } else {add("Data",d); add("Categoria",esc(e.cat||"Despesa")); add("Valor",brl2(num(e.valor)||0)); if(e.desc) add("Descrição",esc(e.desc))}
   if(e.gas) add("Gasolina de referência",brl2(e.gas)+"/L · "+fmt(e.kml??S.kml,1)+" km/l");
+  D.push(`<div class="acts"><button class="btn sm edit" data-edit="${esc(e.id)}">✎ Editar</button></div>`);
   return D.join("")}
 let IV={};
 function calcIV(){IV={};let po=S.odoIni,pr=null;
@@ -545,6 +547,7 @@ function drawHist(R){calcIV();
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
   box.querySelectorAll(".entry.tap").forEach(el=>el.onclick=ev=>{if(ev.target.closest(".del"))return;const id=el.dataset.open,d=document.getElementById("det-"+id);
     const o=!OPEN.has(id); if(o)OPEN.add(id);else OPEN.delete(id); el.classList.toggle("open",o); d.classList.toggle("open",o)});
+  box.querySelectorAll("[data-edit]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const e=E.find(x=>x.id===b.dataset.edit);if(e)openSheet(e)});
   box.querySelectorAll(".del").forEach(b=>b.onclick=ev=>{ev.stopPropagation();
     if(b.dataset.sure){removeEntry(b.dataset.id);return}
     b.dataset.sure=1;b.textContent="?";b.style.width="auto";b.style.padding="0 10px";b.textContent="Apagar?";
@@ -552,8 +555,8 @@ function drawHist(R){calcIV();
 }
 
 /* ======================= formulário ======================= */
-let ftype="recarga", FS={};
-function lastOdo(){return E.reduce((a,e)=>Math.max(a,num(e.odo)||0),S.odoIni)}
+let ftype="recarga", FS={}, EDIT=null;
+function lastOdo(){return E.filter(e=>!EDIT||(e.id!==EDIT.id&&e.date<=EDIT.date)).reduce((a,e)=>Math.max(a,num(e.odo)||0),S.odoIni)}
 function lastRec(){return E.filter(e=>e.type==="recarga"&&e.socIni!=null).sort((a,b)=>a.created>b.created?1:-1).pop()}
 function lastMed(d){return E.filter(e=>num(e.med)>0&&(!d||e.date<=d)).reduce((a,e)=>Math.max(a,num(e.med)),0)}
 function perdasMed(){const L=E.filter(e=>e.kwhMed&&e.socIni!=null&&e.socFim>e.socIni&&num(e.kwh)>0);if(L.length<2)return null;
@@ -594,8 +597,8 @@ function buildForm(){
   let h=`<div class="field"><label>Data</label><input id="fDate" type="date" value="${t}"></div>`;
   FS={local:"casa",manual:false};upd=()=>{};
   if(ftype==="recarga"){
-    const lr=lastRec(); FS.a=lr?lr.socIni:20; FS.b=lr?lr.socFim:80;
-    h+=`<div class="field"><label>Onde</label><div class="seg" id="locSeg" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
+    const lr=EDIT&&EDIT.socIni!=null?EDIT:lastRec(); FS.a=lr?lr.socIni:20; FS.b=lr?lr.socFim:80; if(EDIT)FS.local=EDIT.local||"casa";
+    h+=`<div class="field"><label>Onde</label><div class="seg" id="locSeg" style="width:190px"><div class="ind"></div><button data-l="casa"${FS.local==="casa"?' class="on"':""}>Em casa</button><button data-l="rua"${FS.local==="rua"?' class="on"':""}>Eletroposto</button></div></div>
     <div class="bat"><div class="vals"><div class="lbl">Bateria</div><div class="big" id="batTxt"></div></div><div class="dual" id="dual"></div>
       <div class="calc"><div>Na bateria<b id="cBat">—</b></div><div>Da tomada<b id="cWall">—</b></div><div>Custo<b id="cCost">—</b></div></div>
       <div id="kRow" class="odo" style="display:none;border-top:0;padding-top:8px">
@@ -616,7 +619,8 @@ function buildForm(){
   hint.textContent=ftype==="km"?"Lance quando quiser atualizar os km sem recarregar.":ftype==="despesa"?"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.":"";
   if(ftype==="recarga"){
     const dt=document.getElementById("fDate");
-    FS.measure=!!S.medidor; FS.kTouched=false;
+    FS.measure=FS.local==="casa"?!!S.medidor:false; FS.kTouched=false;
+    if(EDIT&&(EDIT.kwhMed||EDIT.kwhManual||EDIT.socIni==null)){FS.measure=true;FS.kTouched=true}
     upd=()=>{const bat=(FS.b-FS.a)/100*S.bat, est=bat*(1+perdasEf()/100);
       const kr=document.getElementById("kR"),ki=document.getElementById("fKwh");
       document.getElementById("kRow").style.display=FS.measure?"block":"none";
@@ -644,15 +648,26 @@ function buildForm(){
     document.getElementById("fVal").oninput=upd; dt.onchange=upd;
   }
   if(ftype!=="despesa") wireOdo();
+  if(EDIT){const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v};
+    sv("fDate",EDIT.date);
+    if(ftype==="recarga"){if(FS.kTouched){const k=num(EDIT.kwh)||0;sv("fKwh",fmt(k,1));sv("kR",Math.min(70,k))}
+      if(FS.local==="rua"){document.getElementById("valRow").style.display="block";sv("fVal",String(num(EDIT.valor)||"").replace(".",","))}}
+    if(ftype==="despesa"){sv("fCat",EDIT.cat);sv("fVal",String(num(EDIT.valor)||"").replace(".",","));sv("fDesc",EDIT.desc||"")}
+    if(num(EDIT.odo)>0){const inp=document.getElementById("fOdo");if(inp){inp.value=fmt(num(EDIT.odo));inp.oninput()}}}
   upd();
 }
 mkSeg(document.getElementById("typeSeg"),t=>{ftype=t;buildForm()});
 /* ---------- sheet: abrir, fechar e arrastar ---------- */
 const SH=document.getElementById("sheet"),SBG=document.getElementById("sbg");
-function openSheet(){document.body.classList.add("sheet-on");buildForm();document.getElementById("sheetBody").scrollTop=0;SH.style.transform="";SBG.style.opacity="";
+function openSheet(edit){EDIT=edit&&edit.id?edit:null;
+  document.getElementById("sheetTitle").textContent=EDIT?"Editar lançamento":"Novo lançamento";
+  document.getElementById("saveBtn").textContent=EDIT?"Salvar alterações":"Salvar";
+  const ts=document.getElementById("typeSeg"); if(EDIT)ftype=EDIT.type;
+  ts.querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.t===ftype);b.disabled=!!EDIT&&b.dataset.t!==ftype;b.style.opacity=b.disabled?.35:""});
+  document.body.classList.add("sheet-on");buildForm();document.getElementById("sheetBody").scrollTop=0;SH.style.transform="";SBG.style.opacity="";
   SBG.classList.add("on");requestAnimationFrame(()=>{SH.classList.add("open");segInd(document.getElementById("typeSeg"))})}
-function closeSheet(){document.body.classList.remove("sheet-on");SH.style.transition="";SH.style.transform="";SBG.style.transition="";SBG.style.opacity="";SH.classList.remove("open");SBG.classList.remove("on")}
-document.getElementById("addBtn").onclick=()=>SH.classList.contains("open")?closeSheet():openSheet();
+function closeSheet(){EDIT=null;document.body.classList.remove("sheet-on");SH.style.transition="";SH.style.transform="";SBG.style.transition="";SBG.style.opacity="";SH.classList.remove("open");SBG.classList.remove("on")}
+document.getElementById("addBtn").onclick=()=>SH.classList.contains("open")?closeSheet():openSheet(null);
 SBG.onclick=closeSheet;
 (()=>{let y0=0,t0=0,dy=0,on=false,lastY=0,lastT=0,vel=0;
   const body=document.getElementById("sheetBody");
@@ -671,19 +686,23 @@ SBG.onclick=closeSheet;
 document.getElementById("saveBtn").onclick=async()=>{
   const g=id=>{const el=document.getElementById(id);return el?el.value:""};
   const date=g("fDate"); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Data inválida",false);
-  const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
+  const e=EDIT?{id:EDIT.id,type:EDIT.type,date,gas:EDIT.gas??S.gas,kml:EDIT.kml??S.kml,created:EDIT.created??Date.now()}:{id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
   const odo=ftype==="despesa"?null:(FS.odo||null);
   if(odo!=null){ e.odo=odo }
   if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.medKwh!=null){if(FS.local==="casa")e.kwhMed=1;else e.kwhManual=1}e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
-  if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
-  await addEntry(e); closeSheet(); toast("Lançamento salvo ✓");
+  if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date&&(!EDIT||x.id!==EDIT.id)).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
+  const wasEdit=!!EDIT; if(wasEdit)await updateEntry(e); else await addEntry(e); closeSheet(); toast(wasEdit?"Lançamento atualizado ✓":"Lançamento salvo ✓");
 };
 
 /* ======================= persistência ======================= */
 async function addEntry(e){
   E.push(e);cache();render();
+  if(db){try{await db.collection("entries").doc(e.id).set(e)}catch(err){toast("Não salvou na nuvem — ficou só neste aparelho",false)}}
+}
+async function updateEntry(e){
+  E=E.map(x=>x.id===e.id?e:x);cache();render();
   if(db){try{await db.collection("entries").doc(e.id).set(e)}catch(err){toast("Não salvou na nuvem — ficou só neste aparelho",false)}}
 }
 async function removeEntry(id){
@@ -850,7 +869,7 @@ window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141010";
+const APP_V="202611141023";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
