@@ -676,7 +676,7 @@ function wireOdo(){const lo=lastOdo(),inp=document.getElementById("fOdo"),r=docu
   r.oninput=()=>{FS.odoTouched=true;show(lo+ +r.value)};
   inp.oninput=()=>{const v=num(inp.value);if(v!=null){FS.odo=v>lo?v:null;r.value=Math.max(0,Math.min(1000,v-lo));dl.textContent=v>lo?"+"+fmt(v-lo)+" km":"menor que a última"}upd()};
   inp.onblur=()=>{if(FS.odo)inp.value=fmt(FS.odo)};
-  document.querySelectorAll(".odo .st").forEach(b=>b.onclick=()=>{const cur=FS.odo||lo;show(Math.max(lo,cur+ +b.dataset.d));r.value=Math.max(0,Math.min(1000,(FS.odo||lo)-lo))});
+  document.querySelectorAll(".odo .st[data-d]").forEach(b=>b.onclick=()=>{const cur=FS.odo||lo;show(Math.max(lo,cur+ +b.dataset.d));r.value=Math.max(0,Math.min(1000,(FS.odo||lo)-lo))});
   show(lo)}
 function dualSlider(el,a,b,onCh){
   el.innerHTML=`<div class="tr"></div><div class="rg"></div><div class="th" data-k="a"></div><div class="th" data-k="b"></div>`+[0,25,50,75,100].map(v=>`<span class="tk" style="left:${v}%">${v}</span>`).join("");
@@ -1000,7 +1000,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141826";
+const APP_V="202611141832";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
