@@ -421,9 +421,12 @@ function render(){
   document.getElementById("hGer").style.display=HM==="ger"?"block":"none";
   if(HM==="ger"){
     const pt=patr(todayISO()), dpat=pt.ora-pt.civ, v=R.ecoTot+dpat;
-    document.getElementById("hLbl").textContent=v>=0?"Resultado real":"Resultado real (perda)";
-    document.getElementById("hVal").textContent=(v>=0?"+":"−")+brl(Math.abs(v)); document.getElementById("hVal").style.color=v>=0?"var(--green)":"var(--red)";
-    document.getElementById("hSub").innerHTML=(!R.started?`O uso começa a contar em <b>${mname(mkey(S.inicio))}</b>. `:"")+`Custos (energia, parcelas, seguro, IPVA, manutenção e despesas) + patrimônio (FIPE − saldo devedor), comparados com ficar com o Civic.`;
+    document.getElementById("hLbl").textContent=pt.pre?"Resultado real":v>=0?"Resultado real":"Resultado real (perda)";
+    document.getElementById("hVal").textContent=pt.pre?"R$ 0":(v>=0?"+":"−")+brl(Math.abs(v)); document.getElementById("hVal").style.color=pt.pre?"var(--tx)":v>=0?"var(--green)":"var(--red)";
+    let ent=null; if(pt.pre){const mk=S.inicio.slice(0,7);ent=(fipeAt("ora",mk)-saldoApos(pagasAte(S.inicio)))-(fipeAt("civic",mk)+CT().cash)}
+    document.getElementById("hSub").innerHTML=pt.pre
+      ?`Começa a contar na chegada do ORA, em <b>${S.inicio.split("-").reverse().join("/")}</b>. Até lá você só tem o Civic, então está tudo empatado.${ent<0?` Na chegada, o patrimônio já deve cair <b style="color:var(--red)">${brl(-ent)}</b>: a FIPE do ORA fica abaixo do preço pago.`:""}`
+      :`Custos (energia, parcelas, seguro, IPVA, manutenção e despesas) + patrimônio (FIPE − saldo devedor), comparados com ficar com o Civic.`;
     const mx=Math.max(R.civTot,R.oraTot,1);
     document.getElementById("gCiv").style.width=(R.civTot/mx*100)+"%"; document.getElementById("gOra").style.width=(R.oraTot/mx*100)+"%";
     document.getElementById("gCivV").textContent=brl(R.civTot); document.getElementById("gOraV").textContent=brl(R.oraTot);
@@ -645,7 +648,8 @@ function pagasAte(d){const st=parcStart();if(d<st)return 0;let k=monthsBetween(s
 function fipeAt(car,mk){const c=CT(),h=(FIPE[car]&&FIPE[car].hist)||{},ks=Object.keys(h).sort();if(!ks.length)return 0;
   let b=ks.filter(k=>k<=mk).pop();if(!b)return h[ks[0]];if(b===mk||b!==ks[ks.length-1])return h[b];
   const dep=(car==="ora"?c.depOra:c.depCiv)/100;return h[b]*Math.pow(1-dep,monthsBetween(b,mk)/12)}
-function patr(d){const mk=d.slice(0,7),c=CT(),k=pagasAte(d);return{ora:fipeAt("ora",mk)-saldoApos(k),civ:fipeAt("civic",mk)+c.cash,k}}
+function patr(d){const mk=d.slice(0,7),c=CT(),civ=fipeAt("civic",mk)+c.cash;
+  if(d<S.inicio)return{ora:civ,civ,k:0,pre:true};const k=pagasAte(d);return{ora:fipeAt("ora",mk)-saldoApos(k),civ,k}}
 function segInd(seg){const on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");if(!on||!ind)return;ind.style.width=on.offsetWidth+"px";ind.style.transform=`translateX(${on.offsetLeft-3}px)`}
 function mkSeg(el,onChange){el.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.classList.contains("on"))return;el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");segInd(el);onChange(b.dataset.t||b.dataset.l)});requestAnimationFrame(()=>segInd(el))}
 function odoBlock(opt){const lo=lastOdo();return `<div class="odo">
@@ -982,7 +986,7 @@ buildSettings(); render(); tbShape(); initDB();
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141745";
+const APP_V="202611141749";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
