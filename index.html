@@ -112,13 +112,48 @@ details.old[open] summary{color:var(--tx)}
 .note{font-size:11.5px;color:var(--tx3);line-height:1.5;margin:14px 4px 0}
 .empty{text-align:center;padding:26px 18px}
 .empty .e1{font-size:30px} .empty p{color:var(--tx2);font-size:13.5px;line-height:1.5;margin:8px 0 14px}
-.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:10;display:none;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:560px;margin:0 auto;border-radius:26px 26px 0 0;padding:10px 18px calc(env(safe-area-inset-bottom) + 18px);
-  background:linear-gradient(180deg,rgba(38,38,36,.98),rgba(26,25,24,.99));border:1px solid var(--line2);border-bottom:0;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.3,1);max-height:92vh;overflow:auto}
-.sheet:not(.open){visibility:hidden;transition:transform .32s,visibility 0s .32s}
-.sheet.open{transform:none}
-.grab{width:40px;height:5px;border-radius:9px;background:rgba(255,255,255,.2);margin:0 auto 12px}
-.sheet h2{font-size:19px;margin:0 0 12px}
+.sheetbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10;opacity:0;pointer-events:none;transition:opacity .5s cubic-bezier(.32,.72,0,1)}
+.sheetbg.on{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:11;max-width:560px;margin:0 auto;height:min(660px,90vh);display:flex;flex-direction:column;
+  border-radius:28px 28px 0 0;background:rgba(32,31,30,.97);-webkit-backdrop-filter:blur(30px) saturate(150%);backdrop-filter:blur(30px) saturate(150%);
+  border:1px solid rgba(255,255,255,.09);border-bottom:0;box-shadow:0 -20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
+  transform:translate3d(0,105%,0);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
+.sheet.open{transform:translate3d(0,0,0)}
+.sheet .head{padding:10px 18px 12px;cursor:grab}
+.grab{width:38px;height:5px;border-radius:9px;background:rgba(255,255,255,.22);margin:0 auto 14px}
+.sheet h2{font-size:19px;margin:0 0 14px;font-weight:600}
+.sheet .body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:0 18px;touch-action:pan-y}
+.sheet .foot{padding:10px 18px calc(env(safe-area-inset-bottom) + 14px);border-top:1px solid rgba(255,255,255,.05)}
+.sheet .foot .btn{margin:0}
+.fade-in{animation:fin .28s cubic-bezier(.32,.72,0,1)}
+@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+/* segmented com indicador deslizante */
+.seg{position:relative}
+.seg .ind{position:absolute;top:3px;bottom:3px;left:3px;border-radius:9px;background:var(--card2);box-shadow:inset 0 0 0 1px var(--line2),0 1px 3px rgba(0,0,0,.3);transition:transform .38s cubic-bezier(.32,.72,0,1),width .38s cubic-bezier(.32,.72,0,1)}
+.seg button{position:relative;z-index:1;transition:color .25s}
+.seg button.on{background:none!important;box-shadow:none!important;color:#fff}
+/* bateria */
+.bat{margin:6px 0 4px;padding:14px 0 6px}
+.bat .vals{display:flex;align-items:baseline;justify-content:space-between}
+.bat .big{font-size:30px;font-weight:700;letter-spacing:-.8px}
+.bat .big small{font-size:15px;color:var(--tx3);font-weight:600;margin:0 6px}
+.dual{position:relative;height:44px;margin:14px 6px 2px;touch-action:none}
+.dual .tr{position:absolute;left:0;right:0;top:17px;height:10px;border-radius:9px;background:rgba(255,255,255,.08);overflow:hidden}
+.dual .rg{position:absolute;top:17px;height:10px;border-radius:9px;background:linear-gradient(90deg,#3f8f69,#5cb88a)}
+.dual .th{position:absolute;top:8px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:#f5f4ef;box-shadow:0 2px 8px rgba(0,0,0,.45),inset 0 -1px 0 rgba(0,0,0,.08);transition:transform .2s cubic-bezier(.32,.72,0,1)}
+.dual .th.act{transform:scale(1.18)}
+.dual .tk{position:absolute;top:30px;font-size:10px;color:var(--tx3);transform:translateX(-50%)}
+.calc{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:12px 0 4px}
+.calc div{background:rgba(255,255,255,.05);border-radius:12px;padding:9px 10px;font-size:11px;color:var(--tx3)}
+.calc b{display:block;color:var(--tx);font-size:15px;margin-top:2px}
+.odo{padding:14px 0 6px;border-top:1px solid var(--line)}
+.odo .row{display:flex;align-items:center;gap:10px}
+.odo .num::placeholder{color:var(--tx3)}
+.odo .num{flex:1;font-size:28px;font-weight:700;letter-spacing:-.6px;background:none;border:0;color:var(--tx);padding:0;width:100%;outline:none}
+.odo .st{width:40px;height:40px;border-radius:12px;border:1px solid var(--line2);background:rgba(255,255,255,.05);color:var(--tx);font:600 20px Inter;flex:none}
+.odo input[type=range]{width:100%;margin:12px 0 2px;-webkit-appearance:none;appearance:none;height:10px;border-radius:9px;background:rgba(255,255,255,.08);outline:none}
+.odo input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:#f5f4ef;box-shadow:0 2px 8px rgba(0,0,0,.45)}
+.link{background:none;border:0;color:var(--ac2);font:600 12.5px Inter;padding:6px 0}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translate(-50%,-150%);z-index:20;padding:10px 16px;border-radius:14px;font-size:13px;font-weight:600;transition:transform .3s}
 .toast.on{transform:translate(-50%,0)}
 .confirm{display:none;gap:8px;margin-top:8px}
@@ -231,12 +266,13 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 
 <div class="sheetbg" id="sbg"></div>
 <div class="sheet" id="sheet">
-  <div class="grab"></div>
-  <h2>Novo lançamento</h2>
-  <div class="seg" id="typeSeg"><button data-t="recarga" class="on">⚡ Recarga</button><button data-t="km">🛣️ Odômetro</button><button data-t="despesa">🧾 Despesa</button></div>
-  <div id="form" style="margin-top:8px"></div>
-  <div class="sub" id="formHint" style="margin-top:8px"></div>
-  <button class="btn pri" id="saveBtn">Salvar</button>
+  <div class="head" id="sheetHead">
+    <div class="grab"></div>
+    <h2>Novo lançamento</h2>
+    <div class="seg" id="typeSeg"><div class="ind"></div><button data-t="recarga" class="on">⚡ Recarga</button><button data-t="km">🛣️ Odômetro</button><button data-t="despesa">🧾 Despesa</button></div>
+  </div>
+  <div class="body" id="sheetBody"><div id="form"></div><div class="sub" id="formHint" style="margin:10px 0 16px"></div></div>
+  <div class="foot"><button class="btn pri" id="saveBtn">Salvar</button></div>
 </div>
 <div class="toast glass" id="toast"></div>
 
@@ -246,7 +282,7 @@ const DEF={
   inicio:"2027-02-01", odoIni:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
   parcela:1200, nParc:75, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
-  kmPlan:1000, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
+  kmPlan:1000, bat:58.3, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
@@ -414,7 +450,18 @@ function drawBars(R){
 }
 
 const ICON={recarga:["⚡","rgba(92,184,138,.15)"],km:["🛣️","rgba(217,119,87,.18)"],despesa:["🧾","rgba(255,255,255,.06)"]};
-function drawHist(R){
+let IV={};
+function calcIV(){IV={};let po=S.odoIni,pr=null;
+  E.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0)).forEach(e=>{
+    const o=num(e.odo);
+    if(o>0&&o>po){const km=o-po;const iv={km};
+      if(e.type==="recarga"){let used=null;
+        if(pr&&pr.socFim!=null&&e.socIni!=null&&pr.socFim>e.socIni)used=(pr.socFim-e.socIni)/100*S.bat*(1+S.perdas/100);
+        else if(num(e.kwh)>0)used=num(e.kwh);
+        if(used&&km>=20)iv.c=used/km*100}
+      IV[e.id]=iv;po=o}
+    if(e.type==="recarga")pr=e});}
+function drawHist(R){calcIV();
   const box=document.getElementById("histList");
   if(!R.L.length){box.innerHTML="";return}
   box.innerHTML=R.L.slice().reverse().map(m=>{
@@ -425,8 +472,8 @@ function drawHist(R){
       <div style="margin-top:10px">${items.length?items.map(e=>{
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
         const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
-        const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null;
-        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
+        const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null, iv=IV[e.id];
+        const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", td?brl2(td.t)+"/kWh "+(td.fat?"(conta "+mlabel(td.f.ref)+")":"(provisório)"):"", iv?"+"+fmt(iv.km)+" km"+(iv.c?" · "+fmt(iv.c,1)+" kWh/100km":""):"", num(e.odo)>0?fmt(num(e.odo))+" km no odômetro":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
         const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
         return `<div class="entry"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}</div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
@@ -437,48 +484,107 @@ function drawHist(R){
 }
 
 /* ======================= formulário ======================= */
-let ftype="recarga";
+let ftype="recarga", FS={};
 function lastOdo(){return E.reduce((a,e)=>Math.max(a,num(e.odo)||0),S.odoIni)}
+function lastRec(){return E.filter(e=>e.type==="recarga"&&e.socIni!=null).sort((a,b)=>a.created>b.created?1:-1).pop()}
+function segInd(seg){const on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");if(!on||!ind)return;ind.style.width=on.offsetWidth+"px";ind.style.transform=`translateX(${on.offsetLeft-3}px)`}
+function mkSeg(el,onChange){el.querySelectorAll("button").forEach(b=>b.onclick=()=>{if(b.classList.contains("on"))return;el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));b.classList.add("on");segInd(el);onChange(b.dataset.t||b.dataset.l)});requestAnimationFrame(()=>segInd(el))}
+function odoBlock(opt){const lo=lastOdo();return `<div class="odo">
+  <div class="lbl" style="display:flex;justify-content:space-between"><span>Odômetro ${opt?"<small style='color:var(--tx3)'>· opcional</small>":""}</span><span id="odoDelta" style="color:var(--tx3)"></span></div>
+  <div class="row"><button class="st" data-d="-1">−</button><input class="num" id="fOdo" inputmode="numeric" value="" placeholder="${fmt(lo)}"><button class="st" data-d="1">+</button></div>
+  <input type="range" id="odoR" min="0" max="1000" step="1" value="0">
+  <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx3)"><span>última: ${fmt(lo)} km</span><span>+1.000 km</span></div></div>`}
+function wireOdo(){const lo=lastOdo(),inp=document.getElementById("fOdo"),r=document.getElementById("odoR"),dl=document.getElementById("odoDelta");if(!inp)return;
+  FS.odoTouched=false;
+  const show=v=>{inp.value=v>lo?fmt(v):"";dl.textContent=v>lo?"+"+fmt(v-lo)+" km":"arraste para ajustar";FS.odo=v>lo?v:null;upd()};
+  r.oninput=()=>{FS.odoTouched=true;show(lo+ +r.value)};
+  inp.oninput=()=>{const v=num(inp.value);if(v!=null){FS.odo=v>lo?v:null;r.value=Math.max(0,Math.min(1000,v-lo));dl.textContent=v>lo?"+"+fmt(v-lo)+" km":"menor que a última"}upd()};
+  inp.onblur=()=>{if(FS.odo)inp.value=fmt(FS.odo)};
+  document.querySelectorAll(".odo .st").forEach(b=>b.onclick=()=>{const cur=FS.odo||lo;show(Math.max(lo,cur+ +b.dataset.d));r.value=Math.max(0,Math.min(1000,(FS.odo||lo)-lo))});
+  show(lo)}
+function dualSlider(el,a,b,onCh){
+  el.innerHTML=`<div class="tr"></div><div class="rg"></div><div class="th" data-k="a"></div><div class="th" data-k="b"></div>`+[0,25,50,75,100].map(v=>`<span class="tk" style="left:${v}%">${v}</span>`).join("");
+  const rg=el.querySelector(".rg"),ta=el.querySelector('[data-k="a"]'),tb=el.querySelector('[data-k="b"]');
+  const draw=()=>{ta.style.left=a+"%";tb.style.left=b+"%";rg.style.left=a+"%";rg.style.width=(b-a)+"%";onCh(a,b)};
+  let drag=null;
+  const val=x=>{const r=el.getBoundingClientRect();return Math.round(Math.max(0,Math.min(100,(x-r.left)/r.width*100)))};
+  el.addEventListener("pointerdown",e=>{e.stopPropagation();const v=val(e.clientX);drag=Math.abs(v-a)<Math.abs(v-b)||(v<a)?"a":"b";if(a===b)drag=v>a?"b":"a";
+    (drag==="a"?ta:tb).classList.add("act");el.setPointerCapture(e.pointerId);move(e)});
+  const move=e=>{if(!drag)return;const v=val(e.clientX);if(drag==="a")a=Math.min(v,b);else b=Math.max(v,a);draw()};
+  el.addEventListener("pointermove",move);
+  el.addEventListener("pointerup",()=>{ta.classList.remove("act");tb.classList.remove("act");drag=null});
+  el.addEventListener("pointercancel",()=>{ta.classList.remove("act");tb.classList.remove("act");drag=null});
+  draw()}
+let upd=()=>{};
 function buildForm(){
-  const f=document.getElementById("form"), t=todayISO();
+  const f=document.getElementById("form"), t=todayISO(), hint=document.getElementById("formHint");
   const row=(id,l,u,attrs="")=>`<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input id="${id}" ${attrs}></div>`;
   let h=`<div class="field"><label>Data</label><input id="fDate" type="date" value="${t}"></div>`;
+  FS={local:"casa",manual:false};upd=()=>{};
   if(ftype==="recarga"){
-    h+=`<div class="field"><label>Onde</label><select id="fLocal"><option value="casa">Em casa</option><option value="rua">Eletroposto</option></select></div>`;
-    h+=row("fKwh","Energia","kWh",'inputmode="decimal" placeholder="0"');
-    h+=`<div id="valRow" style="display:none">`+row("fVal","Valor pago","R$ · eletroposto",'inputmode="decimal" placeholder="0,00"')+`</div>`;
-    h+=row("fOdo","Odômetro","km · opcional, mas recomendado",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
+    const lr=lastRec(); FS.a=lr?lr.socIni:20; FS.b=lr?lr.socFim:80;
+    h+=`<div class="field"><label>Onde</label><div class="seg" id="locSeg" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
+    <div class="bat"><div class="vals"><div class="lbl">Bateria</div><div class="big" id="batTxt"></div></div><div class="dual" id="dual"></div>
+      <div class="calc"><div>Na bateria<b id="cBat">—</b></div><div>Da tomada<b id="cWall">—</b></div><div>Custo<b id="cCost">—</b></div></div>
+      <div id="manRow" style="display:none">${row("fKwh","kWh do carregador","substitui o cálculo",'inputmode="decimal" placeholder="0,0"')}</div>
+      <button class="link" id="manBtn">Informar kWh do carregador</button></div>
+    <div id="valRow" style="display:none">${row("fVal","Valor pago","R$",'inputmode="decimal" placeholder="0,00"')}</div>`+odoBlock(true);
   } else if(ftype==="km"){
-    h+=row("fOdo","Odômetro","km mostrados no painel",`inputmode="numeric" placeholder="${fmt(lastOdo())}"`);
+    h+=odoBlock(false);
   } else {
     h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Manutenção</option><option>Pneus</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
     h+=row("fVal","Valor","R$",'inputmode="decimal" placeholder="0,00"');
     h+=row("fDesc","Descrição","opcional",'placeholder="—" style="text-align:left;width:150px"');
   }
-  f.innerHTML=h;
-  const hint=document.getElementById("formHint");
-  hint.textContent=ftype==="recarga"?"Com o odômetro em cada recarga, o app calcula os km e quanto o Civic gastaria de gasolina."
-    :ftype==="km"?`Última leitura: ${fmt(lastOdo())} km. Lance quando quiser atualizar os km sem recarregar.`
-    :"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.";
-  const kwh=document.getElementById("fKwh"),val=document.getElementById("fVal"),loc=document.getElementById("fLocal");
-  if(kwh){const dt=document.getElementById("fDate");const upd=()=>{const casa=loc.value==="casa";document.getElementById("valRow").style.display=casa?"none":"block";
-      if(casa){const td=tarD(dt.value||todayISO()),k=num(kwh.value);
-        hint.innerHTML=`Tarifa usada: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória: última conta, até chegar a conta deste período)":"(padrão)"}${k?` → <b>${brl2(k*td.t)}</b>`:""}.`}
-      else hint.textContent="No eletroposto, informe quanto pagou."};
-    kwh.oninput=upd;loc.onchange=upd;dt.onchange=upd;upd()}
+  f.innerHTML=h; f.classList.remove("fade-in"); void f.offsetWidth; f.classList.add("fade-in");
+  hint.textContent=ftype==="km"?"Lance quando quiser atualizar os km sem recarregar.":ftype==="despesa"?"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.":"";
+  if(ftype==="recarga"){
+    const dt=document.getElementById("fDate");
+    upd=()=>{const bat=(FS.b-FS.a)/100*S.bat, man=FS.manual?num(document.getElementById("fKwh").value):null;
+      const wall=man!=null&&man>0?man:bat*(1+S.perdas/100); FS.kwh=wall;
+      document.getElementById("batTxt").innerHTML=`${FS.a}%<small>→</small>${FS.b}%`;
+      document.getElementById("cBat").textContent=fmt(bat,1)+" kWh";
+      document.getElementById("cWall").textContent=fmt(wall,1)+" kWh";
+      if(FS.local==="casa"){const td=tarD(dt.value||todayISO());document.getElementById("cCost").textContent=brl2(wall*td.t);
+        hint.innerHTML=`Tarifa: <b>${brl2(td.t)}/kWh</b> ${td.fat?"(conta "+mlabel(td.f.ref)+")":td.f?"(provisória)":"(padrão)"} · perdas de recarga ${fmt(S.perdas)}% · bateria ${fmt(S.bat,1)} kWh.`}
+      else{const v=num((document.getElementById("fVal")||{}).value||"");document.getElementById("cCost").textContent=v?brl2(v):"—";hint.textContent="No eletroposto, informe quanto pagou. Se o carregador mostrar os kWh, use “Informar kWh do carregador”."}};
+    mkSeg(document.getElementById("locSeg"),l=>{FS.local=l;document.getElementById("valRow").style.display=l==="rua"?"block":"none";upd()});
+    dualSlider(document.getElementById("dual"),FS.a,FS.b,(a,b)=>{FS.a=a;FS.b=b;upd()});
+    document.getElementById("manBtn").onclick=()=>{FS.manual=!FS.manual;document.getElementById("manRow").style.display=FS.manual?"block":"none";document.getElementById("manBtn").textContent=FS.manual?"Usar cálculo pela bateria":"Informar kWh do carregador";upd()};
+    document.getElementById("fKwh").oninput=upd; document.getElementById("fVal").oninput=upd; dt.onchange=upd;
+  }
+  if(ftype!=="despesa") wireOdo();
+  upd();
 }
-document.querySelectorAll("#typeSeg button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#typeSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");ftype=b.dataset.t;buildForm()});
-function openSheet(){document.body.classList.add("sheet-on");buildForm();document.getElementById("sbg").style.display="block";requestAnimationFrame(()=>document.getElementById("sheet").classList.add("open"))}
-function closeSheet(){document.body.classList.remove("sheet-on");document.getElementById("sheet").classList.remove("open");setTimeout(()=>document.getElementById("sbg").style.display="none",300)}
-document.getElementById("addBtn").onclick=openSheet;
-document.getElementById("sbg").onclick=closeSheet;
+mkSeg(document.getElementById("typeSeg"),t=>{ftype=t;buildForm()});
+/* ---------- sheet: abrir, fechar e arrastar ---------- */
+const SH=document.getElementById("sheet"),SBG=document.getElementById("sbg");
+function openSheet(){document.body.classList.add("sheet-on");buildForm();document.getElementById("sheetBody").scrollTop=0;SH.style.transform="";SBG.style.opacity="";
+  SBG.classList.add("on");requestAnimationFrame(()=>{SH.classList.add("open");segInd(document.getElementById("typeSeg"))})}
+function closeSheet(){document.body.classList.remove("sheet-on");SH.style.transition="";SH.style.transform="";SBG.style.transition="";SBG.style.opacity="";SH.classList.remove("open");SBG.classList.remove("on")}
+document.getElementById("addBtn").onclick=()=>SH.classList.contains("open")?closeSheet():openSheet();
+SBG.onclick=closeSheet;
+(()=>{let y0=0,t0=0,dy=0,on=false,lastY=0,lastT=0,vel=0;
+  const body=document.getElementById("sheetBody");
+  SH.addEventListener("pointerdown",e=>{if(e.target.closest("input,select,textarea,button,.dual"))return;
+    if(body.contains(e.target)&&body.scrollTop>0)return;
+    on=true;y0=lastY=e.clientY;t0=lastT=performance.now();dy=0;vel=0});
+  window.addEventListener("pointermove",e=>{if(!on)return;dy=e.clientY-y0;const now=performance.now();vel=(e.clientY-lastY)/Math.max(1,now-lastT);lastY=e.clientY;lastT=now;
+    if(Math.abs(dy)<4)return;
+    const d=dy>0?dy:-Math.sqrt(-dy)*2.2; // resistência ao puxar para cima
+    SH.style.transition="none";SH.style.transform=`translate3d(0,${d}px,0)`;
+    SBG.style.transition="none";SBG.style.opacity=Math.max(0,1-Math.max(0,dy)/SH.offsetHeight);});
+  const end=()=>{if(!on)return;on=false;SH.style.transition="";SBG.style.transition="";
+    if(dy>SH.offsetHeight*.28||(vel>.45&&dy>20))closeSheet();else{SH.style.transform="";SBG.style.opacity=""}};
+  window.addEventListener("pointerup",end);window.addEventListener("pointercancel",end);
+})();
 document.getElementById("saveBtn").onclick=async()=>{
   const g=id=>{const el=document.getElementById(id);return el?el.value:""};
   const date=g("fDate"); if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast("Data inválida",false);
   const e={id:"e"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),type:ftype,date,gas:S.gas,kml:S.kml,created:Date.now()};
-  const odo=num(g("fOdo"));
-  if(odo!=null){ if(odo<=0) return toast("Odômetro inválido",false); e.odo=odo }
-  if(ftype==="recarga"){const k=num(g("fKwh"));if(!k||k<=0)return toast("Informe os kWh",false);e.kwh=k;e.local=g("fLocal");if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
+  const odo=ftype==="despesa"?null:(FS.odo||null);
+  if(odo!=null){ e.odo=odo }
+  if(ftype==="recarga"){const k=FS.kwh;if(!(k>0))return toast("Ajuste a bateria: início e fim iguais",false);e.kwh=Math.round(k*10)/10;e.socIni=FS.a;e.socFim=FS.b;if(FS.manual)e.kwhManual=1;e.local=FS.local;if(e.local==="rua"){const v=num(g("fVal"));if(v==null||v<0)return toast("Informe o valor",false);e.valor=v}}
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
@@ -513,7 +619,7 @@ const FIELDS={
   fIni:[["inicio","Data de início","dia que o ORA chegou","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
   fFix:[["parcela","Mensalidade","R$/mês · entra sozinha","num"],["nParc","Nº de mensalidades","0 = sem fim","num"],["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["perdas","Perdas na recarga","%","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){
@@ -652,7 +758,7 @@ document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
 window.addEventListener("resize",render);
 buildSettings(); render(); tbShape(); initDB();
 /* ======================= atualização automática ======================= */
-const APP_V="202611130711";
+const APP_V="202611140949";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
