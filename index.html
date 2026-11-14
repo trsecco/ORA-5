@@ -34,7 +34,7 @@ body{min-height:100vh;overflow-x:hidden}
 .pill.ok i{background:var(--green);box-shadow:0 0 8px var(--green)}
 h1{font-family:"Source Serif 4",Georgia,serif;font-weight:500;font-size:34px;line-height:1.08;margin:10px 0 18px;letter-spacing:-.3px}
 h1 span{color:var(--orange)}
-.glass{background:rgba(31,30,29,.55);-webkit-backdrop-filter:blur(22px) saturate(130%);backdrop-filter:blur(22px) saturate(130%);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 12px 30px -18px rgba(0,0,0,.7)}
+.glass{background:rgba(31,30,29,var(--card-a,.55));-webkit-backdrop-filter:blur(var(--card-blur,22px)) saturate(130%);backdrop-filter:blur(var(--card-blur,22px)) saturate(130%);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 12px 30px -18px rgba(0,0,0,.7)}
 .hero{padding:18px;position:relative;overflow:hidden}
 .hero:after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:none;pointer-events:none}
 .lbl{font-size:12px;color:var(--tx2);font-weight:500}
@@ -104,8 +104,8 @@ details.old[open] summary{color:var(--tx)}
 .btn.pri{background:var(--ac);border-color:transparent;color:#1a1918;box-shadow:none}
 .btn.sm{width:auto;padding:10px 14px;margin:0;font-size:13px}
 .tabbar{position:fixed;left:16px;right:16px;max-width:440px;margin:0 auto;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:5;height:64px;border-radius:32px;
-  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0) 55%,rgba(255,255,255,.012));
-  -webkit-backdrop-filter:blur(3px) saturate(160%) brightness(1.1);backdrop-filter:blur(3px) saturate(160%) brightness(1.1);
+  background:linear-gradient(180deg,rgba(255,255,255,var(--tb-a1,.025)),rgba(255,255,255,var(--tb-a2,0)) 55%,rgba(255,255,255,var(--tb-a3,.012)));
+  -webkit-backdrop-filter:blur(var(--tb-blur,3px)) saturate(160%) brightness(1.1);backdrop-filter:blur(var(--tb-blur,3px)) saturate(160%) brightness(1.1);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.08),inset 0 0 0 .5px rgba(255,255,255,.2),inset 0 10px 18px -12px rgba(255,255,255,.25),0 12px 32px rgba(0,0,0,.5)}
 .tabbar:before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
   background:radial-gradient(120% 90% at 50% -40%,rgba(255,255,255,.18),transparent 60%),radial-gradient(40% 80% at 0% 50%,rgba(255,255,255,.07),transparent 70%),radial-gradient(40% 80% at 100% 50%,rgba(255,255,255,.07),transparent 70%)}
@@ -283,6 +283,14 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
     <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
     <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
+    <div class="sect">Aparência</div>
+    <div class="glass" style="padding:6px 16px 12px">
+      <div class="odo" style="border-top:0;padding:10px 0 4px"><div class="lbl" style="display:flex;justify-content:space-between"><span>Transparência do menu</span><b id="mTv"></b></div>
+        <input type="range" id="mT" min="0" max="100" step="1"></div>
+      <div class="odo" style="padding:12px 0 4px"><div class="lbl" style="display:flex;justify-content:space-between"><span>Transparência dos cards</span><b id="cTv"></b></div>
+        <input type="range" id="cT" min="0" max="100" step="1"></div>
+      <button class="link" id="tReset">Voltar ao padrão</button>
+    </div>
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
       <div class="sub">Seus lançamentos ficam guardados neste iPhone. Copie um backup de vez em quando (ex.: cole numa nota) e use Restaurar se trocar de aparelho.</div>
@@ -971,6 +979,18 @@ document.getElementById("bImp").onclick=async()=>{
   }catch(e){toast("Backup inválido",false)}
 };
 
+/* ======================= aparência ======================= */
+const APP_T={menuT:85,cardT:45};
+function applyLook(){const m=S.menuT??APP_T.menuT,c=S.cardT??APP_T.cardT,f=1-m/100,g=1-c/100,r=document.documentElement.style;
+  r.setProperty("--tb-a1",(.16*f).toFixed(3));r.setProperty("--tb-a2",(.06*f).toFixed(3));r.setProperty("--tb-a3",(.08*f).toFixed(3));r.setProperty("--tb-blur",(2+18*f).toFixed(1)+"px");
+  r.setProperty("--card-a",(.95-.9*c/100).toFixed(3));r.setProperty("--card-blur",(6+30*g).toFixed(1)+"px");
+  const a=document.getElementById("mT"),b=document.getElementById("cT");if(a&&document.activeElement!==a){a.value=m}if(b&&document.activeElement!==b){b.value=c}
+  const av=document.getElementById("mTv"),bv=document.getElementById("cTv");if(av)av.textContent=m+"%";if(bv)bv.textContent=c+"%"}
+(()=>{const a=document.getElementById("mT"),b=document.getElementById("cT");let t;
+  const ch=()=>{S.menuT=+a.value;S.cardT=+b.value;applyLook();clearTimeout(t);t=setTimeout(saveSettings,400)};
+  a.addEventListener("input",ch);b.addEventListener("input",ch);
+  document.getElementById("tReset").onclick=()=>{S.menuT=APP_T.menuT;S.cardT=APP_T.cardT;applyLook();saveSettings()};})();
+applyLook();
 /* ======================= navegação ======================= */
 let pillAt=null;
 function pillTarget(){const on=document.querySelector(".tb-row button.on"),nav=document.getElementById("tabbar");if(!on)return null;
@@ -1000,7 +1020,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611141839";
+const APP_V="202611141842";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
