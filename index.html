@@ -134,6 +134,9 @@ details.old[open] summary{color:var(--tx)}
   border:1px solid rgba(255,255,255,.09);border-bottom:0;box-shadow:0 -20px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.08);
   transform:translate3d(0,105%,0);transition:transform .5s cubic-bezier(.32,.72,0,1);will-change:transform;touch-action:none}
 .sheet.open{transform:translate3d(0,0,0)}
+.gap{position:absolute;inset:0;border-radius:inherit;background:#1d1c1b;z-index:5;display:none;overflow-y:auto;padding:22px 20px calc(env(safe-area-inset-bottom) + 18px);text-align:center}
+.gap.on{display:block;animation:vin .38s cubic-bezier(.32,.72,0,1)}
+.gbtns{display:flex;flex-direction:column;gap:8px;margin-top:16px}.gbtns .btn{margin:0}
 .sheet .head{padding:10px 18px 12px;cursor:grab}
 .grab{width:38px;height:5px;border-radius:9px;background:rgba(255,255,255,.22);margin:0 auto 14px}
 .sheet h2{font-size:19px;margin:0 0 14px;font-weight:600}
@@ -321,6 +324,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   </div>
   <div class="body" id="sheetBody"><div id="form"></div><div class="sub" id="formHint" style="margin:10px 0 16px"></div></div>
   <div class="foot"><button class="btn pri" id="saveBtn">Salvar</button></div>
+  <div class="gap" id="gapBox"></div>
 </div>
 <div class="toast glass" id="toast"></div>
 
@@ -588,8 +592,9 @@ const OPEN=new Set();
 const effOf=e=>{if(!e.kwhMed||e.socIni==null||!(e.socFim>e.socIni)||!(num(e.kwh)>0))return null;return (e.socFim-e.socIni)/100*S.bat/num(e.kwh)};
 function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.push(`<div${h?' class="hl"':''}><span>${l}</span><b>${v}</b></div>`)};
   const d=e.date.split("-").reverse().join("/");
-  if(e.type==="recarga"){const kb=e.socIni!=null?(e.socFim-e.socIni)/100*S.bat:null, kw=num(e.kwh)||0, ef=effOf(e), cost=custoRec(e);
+  if(e.type==="recarga"){const kb=e.est?num(e.kwhBat):e.socIni!=null?(e.socFim-e.socIni)/100*S.bat:null, kw=num(e.kwh)||0, ef=effOf(e), cost=custoRec(e);
     add("Data",d); add("Local",e.local==="rua"?"Eletroposto":"Em casa");
+    if(e.est) add("Origem","estimada pela média (recarga não lançada)");
     if(e.socIni!=null) add("Bateria",`${e.socIni}% → ${e.socFim}% (+${e.socFim-e.socIni}%)`);
     if(kb!=null) add("Energia na bateria",fmt(kb,1)+" kWh");
     add("Energia da tomada",fmt(kw,1)+" kWh "+(e.kwhMed?"· medida":e.kwhManual?"· do carregador":"· estimada"));
@@ -608,16 +613,25 @@ function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.pus
   D.push(`<div class="acts"><button class="btn sm edit" data-edit="${esc(e.id)}">✎ Editar</button></div>`);
   return D.join("")}
 let IV={};
-function calcIV(){IV={};let po=S.odoIni,pr=null;
-  E.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0)).forEach(e=>{
+const batAdd=e=>e.est?num(e.kwhBat)||0:(e.socIni!=null&&e.socFim>e.socIni?(e.socFim-e.socIni)/100*S.bat:(num(e.kwh)||0)/(1+perdasEf()/100));
+const SORTE=()=>E.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0));
+function calcIV(){IV={};let po=S.odoIni,pe=null,add=0;
+  SORTE().forEach(e=>{
     const o=num(e.odo);
-    if(o>0&&o>po){const km=o-po;const iv={km};
-      if(e.type==="recarga"){let used=null;
-        if(pr&&pr.socFim!=null&&e.socIni!=null&&pr.socFim>e.socIni)used=(pr.socFim-e.socIni)/100*S.bat*(1+perdasEf()/100);
-        else if(num(e.kwh)>0)used=num(e.kwh);
-        if(used&&km>=20)iv.c=used/km*100}
-      IV[e.id]=iv;po=o}
-    if(e.type==="recarga")pr=e});}
+    if(o>0&&o>po){const km=o-po,iv={km};
+      if(e.type==="recarga"&&pe&&pe.type==="recarga"&&pe.socFim!=null&&e.socIni!=null){
+        const used=(pe.socFim-e.socIni)/100*S.bat+add; if(used>0&&km>=20)iv.c=used*(1+perdasEf()/100)/km*100}
+      IV[e.id]=iv;po=o;pe=e;add=0}
+    else if(e.type==="recarga")add+=batAdd(e)});}
+function consBat(){calcIV();const v=Object.values(IV).filter(x=>x.c).map(x=>x.c/(1+perdasEf()/100)).slice(-8).sort((a,b)=>a-b);
+  return v.length?v[Math.floor(v.length/2)]:S.kwh100/(1+perdasEf()/100)}
+function gapCheck(e){if(e.type!=="recarga"||!(num(e.odo)>0)||e.socIni==null)return null;
+  const L=SORTE().filter(x=>x.id!==e.id&&x.date<=e.date);
+  const lastOdo=L.filter(x=>num(x.odo)>0).pop(); if(!lastOdo||lastOdo.type!=="recarga"||lastOdo.socFim==null)return null;
+  const after=L.slice(L.indexOf(lastOdo)+1).filter(x=>x.type==="recarga").reduce((a,x)=>a+batAdd(x),0);
+  const km=num(e.odo)-num(lastOdo.odo); if(km<60)return null;
+  const avg=consBat(), exp=km*avg/100, obs=(lastOdo.socFim-e.socIni)/100*S.bat+after, miss=exp-Math.max(0,obs);
+  if(miss>Math.max(8,.35*exp))return{km,avg,exp,obs:Math.max(0,obs),miss,prev:lastOdo};return null}
 function drawHist(R){calcIV();
   const box=document.getElementById("histList");
   if(!R.L.length){box.innerHTML="";return}
@@ -628,7 +642,7 @@ function drawHist(R){calcIV();
       <div class="mstats"><div>Km<b>${fmt(m.km)}</b></div><div>Gasolina Civic<b>${brl(m.civFuel)}</b></div><div>Energia ORA<b>${brl(m.energia)}</b></div></div>
       <div style="margin-top:10px">${items.length?items.map(e=>{
         const [ic,bg]=ICON[e.type]||["•","rgba(255,255,255,.08)"];
-        const t=e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
+        const t=e.type==="recarga"&&e.est?"Recarga estimada":e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
         const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null, iv=IV[e.id];
         const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", iv?"+"+fmt(iv.km)+" km":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
         const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
@@ -775,7 +789,7 @@ function openSheet(edit){EDIT=edit&&edit.id?edit:null;
   ts.querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.t===ftype);b.disabled=!!EDIT&&b.dataset.t!==ftype;b.style.opacity=b.disabled?.35:""});
   document.body.classList.add("sheet-on");buildForm();document.getElementById("sheetBody").scrollTop=0;SH.style.transform="";SBG.style.opacity="";
   SBG.classList.add("on");requestAnimationFrame(()=>{SH.classList.add("open");segInd(document.getElementById("typeSeg"))})}
-function closeSheet(){EDIT=null;document.body.classList.remove("sheet-on");SH.style.transition="";SH.style.transform="";SBG.style.transition="";SBG.style.opacity="";SH.classList.remove("open");SBG.classList.remove("on")}
+function closeSheet(){EDIT=null;const gb=document.getElementById("gapBox");if(gb)gb.classList.remove("on");document.body.classList.remove("sheet-on");SH.style.transition="";SH.style.transform="";SBG.style.transition="";SBG.style.opacity="";SH.classList.remove("open");SBG.classList.remove("on")}
 document.getElementById("addBtn").onclick=()=>SH.classList.contains("open")?closeSheet():openSheet(null);
 SBG.onclick=closeSheet;
 (()=>{let y0=0,t0=0,dy=0,on=false,lastY=0,lastT=0,vel=0;
@@ -802,10 +816,49 @@ document.getElementById("saveBtn").onclick=async()=>{
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date&&(!EDIT||x.id!==EDIT.id)).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
+  if(!EDIT){const g=gapCheck(e);if(g){showGap(g,e);return}}
   const wasEdit=!!EDIT; if(wasEdit)await updateEntry(e); else await addEntry(e); closeSheet(); toast(wasEdit?"Lançamento atualizado ✓":"Lançamento salvo ✓");
 };
 
 /* ======================= persistência ======================= */
+function midDate(a,b){return isoU(Math.round((dU(a)+dU(b))/2/DAY)*DAY)}
+function showGap(g,e){
+  const box=document.getElementById("gapBox"),p=g.prev,dd=d=>d.slice(8,10)+"/"+d.slice(5,7);
+  const mid=midDate(p.date,e.date)>e.date?e.date:midDate(p.date,e.date);
+  box.innerHTML=`<div class="gin">
+    <div style="font-size:30px">⚠️</div><h3 style="margin:6px 0 8px;font-size:18px">Parece que faltou uma recarga</h3>
+    <p class="sub" style="font-size:13.5px;line-height:1.5">Desde a recarga de <b>${dd(p.date)}</b> você rodou <b>${fmt(g.km)} km</b>. Com seu consumo médio (~${fmt(g.avg,1)} kWh/100 km), isso gasta uns <b>${fmt(g.exp,1)} kWh</b>, mas a bateria só baixou de ${p.socFim}% para ${e.socIni}% (~${fmt(g.obs,1)} kWh).<br>Faltam cerca de <b style="color:var(--ac2)">${fmt(g.miss,1)} kWh</b> — provavelmente uma recarga não lançada.</p>
+    <div id="gapForm" style="display:none;text-align:left;margin-top:6px">
+      <div class="field"><label>Data da recarga esquecida</label><input id="gDate" type="date" value="${mid}" min="${p.date}" max="${e.date}"></div>
+      <div class="field"><label>Onde</label><div class="seg" id="gLoc" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
+      <div class="bat" style="padding-top:6px"><div class="vals"><div class="lbl">Bateria</div><div class="big" id="gBatTxt" style="font-size:24px"></div></div><div class="dual" id="gDual"></div></div>
+      <div id="gValRow" style="display:none"><div class="field"><label>Valor pago<small>R$</small></label><input id="gVal" inputmode="decimal" placeholder="0,00"></div></div>
+      <div class="field"><label>kWh medidos<small>opcional</small></label><input id="gKwh" inputmode="decimal" placeholder="—"></div>
+    </div>
+    <div class="gbtns" id="gBtns">
+      <button class="btn pri" id="gHave">Tenho os dados</button>
+      <button class="btn" id="gAvg">Assumir a média (${fmt(g.miss,1)} kWh)</button>
+      <button class="link" id="gIgn">Ignorar e salvar assim</button>
+    </div>
+    <div class="gbtns" id="gBtns2" style="display:none"><button class="btn pri" id="gSave">Salvar as duas recargas</button><button class="link" id="gBack">Voltar</button></div>
+  </div>`;
+  box.classList.add("on");
+  const finish=async(extra)=>{if(extra)await addEntry(extra);await addEntry(e);box.classList.remove("on");closeSheet();toast(extra?"Recargas salvas ✓":"Lançamento salvo ✓")};
+  const base={type:"recarga",gas:e.gas,kml:e.kml};
+  document.getElementById("gIgn").onclick=()=>finish(null);
+  document.getElementById("gAvg").onclick=()=>finish({...base,id:"e"+Date.now().toString(36)+"g",date:mid,local:"casa",est:1,kwhBat:Math.round(g.miss*10)/10,kwh:Math.round(g.miss*(1+perdasEf()/100)*10)/10,created:Date.now()-1});
+  let G={a:Math.max(5,e.socIni-10),b:Math.min(100,(p.socFim||80)),local:"casa"};
+  document.getElementById("gHave").onclick=()=>{document.getElementById("gapForm").style.display="block";document.getElementById("gBtns").style.display="none";document.getElementById("gBtns2").style.display="flex";
+    mkSeg(document.getElementById("gLoc"),l=>{G.local=l;document.getElementById("gValRow").style.display=l==="rua"?"block":"none"});
+    dualSlider(document.getElementById("gDual"),G.a,G.b,(a,b)=>{G.a=a;G.b=b;document.getElementById("gBatTxt").innerHTML=`${a}%<small>→</small>${b}%`})};
+  document.getElementById("gBack").onclick=()=>{document.getElementById("gapForm").style.display="none";document.getElementById("gBtns").style.display="flex";document.getElementById("gBtns2").style.display="none"};
+  document.getElementById("gSave").onclick=()=>{const d=document.getElementById("gDate").value;if(!d||d<p.date||d>e.date)return toast("Data fora do intervalo",false);
+    if(!(G.b>G.a))return toast("Ajuste a bateria",false);
+    const km=num(document.getElementById("gKwh").value),r={...base,id:"e"+Date.now().toString(36)+"r",date:d,local:G.local,socIni:G.a,socFim:G.b,created:Date.now()-1};
+    r.kwh=km>0?km:Math.round((G.b-G.a)/100*S.bat*(1+perdasEf()/100)*10)/10; if(km>0){if(G.local==="casa")r.kwhMed=1;else r.kwhManual=1}
+    if(G.local==="rua"){const v=num(document.getElementById("gVal").value);if(v==null)return toast("Informe o valor",false);r.valor=v}
+    finish(r)};
+}
 async function addEntry(e){
   E.push(e);cache();render();
   if(db){try{await db.collection("entries").doc(e.id).set(e)}catch(err){toast("Não salvou na nuvem — ficou só neste aparelho",false)}}
@@ -1026,7 +1079,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611150951";
+const APP_V="202611151015";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
