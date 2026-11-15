@@ -136,6 +136,17 @@ details.old[open] summary{color:var(--tx)}
 .sheet.open{transform:translate3d(0,0,0)}
 .gap{position:absolute;inset:0;border-radius:inherit;background:#1d1c1b;z-index:5;display:none;overflow-y:auto;padding:22px 20px calc(env(safe-area-inset-bottom) + 18px);text-align:center}
 .gap.on{display:block;animation:vin .38s cubic-bezier(.32,.72,0,1)}
+.anxl{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.anx{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid var(--line);color:var(--tx);cursor:pointer}
+.anx small{color:var(--tx3)} .anx i{font-style:normal;color:var(--red);font-size:15px;margin-left:2px;padding:0 2px}
+.det .din div.anxrow{flex-direction:column;align-items:flex-start;gap:0}
+.det .din div.anxl{border-top:0;padding:0;justify-content:flex-start}
+.viewer{position:fixed;inset:0;z-index:30;background:rgba(10,10,9,.96);display:none;flex-direction:column;padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px)}
+.viewer.on{display:flex;animation:vin .38s cubic-bezier(.32,.72,0,1)}
+.vtop{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:4px 4px 10px;font-size:13px}
+.vtop b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vbody{flex:1;overflow:auto;border-radius:14px;background:#000;display:flex;align-items:flex-start;justify-content:center}
+.vbody img{max-width:100%;height:auto} .vbody iframe{width:100%;height:100%;border:0;background:#fff}
 .gbtns{display:flex;flex-direction:column;gap:8px;margin-top:16px}.gbtns .btn{margin:0}
 .sheet .head{padding:10px 18px 12px;cursor:grab}
 .grab{width:38px;height:5px;border-radius:9px;background:rgba(255,255,255,.22);margin:0 auto 14px}
@@ -298,7 +309,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
       <div class="sub">Seus lançamentos ficam guardados neste iPhone. Salve um backup em <b>Arquivos → iCloud Drive</b> de vez em quando: ele sobrevive se você apagar o app ou trocar de celular.</div>
-      <div class="sub" id="bkInfo" style="margin-top:8px;font-size:12px"></div>
+      <div class="sub" id="bkInfo" style="margin-top:8px;font-size:12px"></div><div class="sub" id="bkSize" style="font-size:12px"></div>
       <button class="btn pri" id="bFile" style="margin-top:12px">💾 Salvar backup no iCloud</button>
       <button class="btn" id="bLoad" style="margin-top:8px">Restaurar de um arquivo</button>
       <input type="file" id="bFileIn" accept=".json,application/json" style="display:none">
@@ -331,6 +342,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <div class="foot"><button class="btn pri" id="saveBtn">Salvar</button></div>
   <div class="gap" id="gapBox"></div>
 </div>
+<div class="viewer" id="viewer"></div>
 <div class="toast glass" id="toast"></div>
 
 <script>
@@ -616,6 +628,7 @@ function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.pus
     if(iv){add("Km desde a leitura anterior",fmt(iv.km)+" km");const g=iv.km/(e.kml??S.kml)*(e.gas??S.gas);add("Civic gastaria no trecho",brl2(g)+" de gasolina")}
   } else {add("Data",d); add("Categoria",esc(e.cat||"Despesa")); add("Valor",brl2(num(e.valor)||0)); if(e.desc) add("Descrição",esc(e.desc))}
   if(e.gas) add("Gasolina de referência",brl2(e.gas)+"/L · "+fmt(e.kml??S.kml,1)+" km/l");
+  if(e.anexos&&e.anexos.length)D.push(`<div class="anxrow"><span>Anexos</span><div class="anxl">${anxChips(e.anexos,false)}</div></div>`);
   D.push(`<div class="acts"><button class="btn sm edit" data-edit="${esc(e.id)}">✎ Editar</button></div>`);
   return D.join("")}
 let IV={};
@@ -651,13 +664,14 @@ function drawHist(R){calcIV();
         const t=e.type==="recarga"&&e.est?"Recarga estimada":e.type==="recarga"?`Recarga ${e.local==="rua"?"na rua":"em casa"}`:e.type==="km"?"Leitura do odômetro":esc(e.cat||"Despesa");
         const td=e.type==="recarga"&&e.local!=="rua"?tarD(e.date):null, iv=IV[e.id];
         const sub=[e.date.slice(8,10)+"/"+e.date.slice(5,7), e.kwh?fmt(num(e.kwh),1)+" kWh":"", e.socIni!=null?e.socIni+"→"+e.socFim+"%":"", iv?"+"+fmt(iv.km)+" km":"", e.desc?esc(e.desc):""].filter(Boolean).join(" · ");
-        const v=e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0));
+        const v=(e.anexos&&e.anexos.length?"📎 ":"")+(e.type==="km"?"":brl2(e.type==="recarga"?custoRec(e):(num(e.valor)||0)));
         const op=OPEN.has(e.id);
         return `<div class="entry tap${op?" open":""}" data-open="${esc(e.id)}"><div class="ei" style="background:${bg}">${ic}</div><div class="et"><b>${t}</b><span>${sub}</span></div><div class="ev">${v}<i class="chev">›</i></div><button class="del" data-id="${esc(e.id)}" aria-label="Apagar">×</button></div>
         <div class="det${op?" open":""}" id="det-${esc(e.id)}"><div class="din">${detail(e,iv,td)}</div></div>`}).join("")
         :`<div class="sub" style="padding-top:6px">Sem lançamentos neste mês.</div>`}</div></div>`}).join("");
   box.querySelectorAll(".entry.tap").forEach(el=>el.onclick=ev=>{if(ev.target.closest(".del"))return;const id=el.dataset.open,d=document.getElementById("det-"+id);
     const o=!OPEN.has(id); if(o)OPEN.add(id);else OPEN.delete(id); el.classList.toggle("open",o); d.classList.toggle("open",o)});
+  box.querySelectorAll(".det [data-anx]").forEach(x=>x.onclick=ev=>{ev.stopPropagation();openAnexo(x.dataset.anx)});
   box.querySelectorAll("[data-edit]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const e=E.find(x=>x.id===b.dataset.edit);if(e)openSheet(e)});
   box.querySelectorAll(".del").forEach(b=>b.onclick=ev=>{ev.stopPropagation();
     if(b.dataset.sure){removeEntry(b.dataset.id);return}
@@ -744,6 +758,9 @@ function buildForm(){
     h+=row("fVal","Valor","R$",'inputmode="decimal" placeholder="0,00"');
     h+=row("fDesc","Descrição","opcional",'placeholder="—" style="text-align:left;width:150px"');
   }
+  h+=`<div class="odo" style="padding:12px 0 6px"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center"><span>Notas e comprovantes ${ftype==="despesa"?"":"<small style='color:var(--tx3)'>· opcional</small>"}</span>
+     <button class="btn sm" id="anxBtn" style="padding:7px 12px">📎 Anexar</button></div><div id="anxList" class="anxl"></div>
+     <input type="file" id="anxIn" accept="image/*,application/pdf" multiple style="display:none"></div>`;
   f.innerHTML=h; f.classList.remove("fade-in"); void f.offsetWidth; f.classList.add("fade-in");
   hint.textContent=ftype==="km"?"Lance quando quiser atualizar os km sem recarregar.":ftype==="despesa"?"Pedágio, lavagem e estacionamento contam no custo total do ORA, mas não entram na economia de combustível.":"";
   if(ftype==="recarga"){
@@ -776,6 +793,18 @@ function buildForm(){
     document.querySelectorAll("#kRow .st").forEach(b=>b.onclick=()=>{FS.kTouched=true;const v=Math.max(0,Math.min(70,Math.round(((num(ki.value)||0)+ +b.dataset.k)*10)/10));ki.value=fmt(v,1);kr.value=v;upd()});
     document.getElementById("fVal").oninput=upd; dt.onchange=upd;
   }
+  FS.anx=EDIT&&EDIT.anexos?EDIT.anexos.map(a=>({...a})):[];FS.anxNew={};FS.anxDel=[];
+  const drawAnx=()=>{const l=document.getElementById("anxList");l.innerHTML=FS.anx.length?anxChips(FS.anx,true):'<span class="sub" style="font-size:12px">Fotos ou PDFs da nota de serviço, recibo ou comprovante.</span>';
+    l.querySelectorAll("[data-rm]").forEach(x=>x.onclick=ev=>{ev.stopPropagation();const id=x.dataset.rm;FS.anx=FS.anx.filter(a=>a.id!==id);if(FS.anxNew[id])delete FS.anxNew[id];else FS.anxDel.push(id);drawAnx()});
+    l.querySelectorAll("[data-anx]").forEach(x=>x.onclick=()=>{const id=x.dataset.anx;if(!FS.anxNew[id])openAnexo(id)})};
+  document.getElementById("anxBtn").onclick=()=>document.getElementById("anxIn").click();
+  document.getElementById("anxIn").onchange=async ev=>{for(const file of ev.target.files){
+      if(file.size>15*1048576){toast(file.name+": maior que 15 MB",false);continue}
+      const isImg=file.type.startsWith("image/"),blob=isImg?await compressImg(file):file,id="a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+      let name=file.name||"anexo";if(isImg&&blob!==file)name=name.replace(/\.[^.]+$/,"")+".jpg";
+      FS.anxNew[id]={id,name,type:blob.type||file.type,data:blob};FS.anx.push({id,name,type:blob.type||file.type,size:blob.size})}
+    ev.target.value="";drawAnx()};
+  drawAnx();
   if(ftype!=="despesa") wireOdo();
   if(EDIT){const sv=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null)el.value=v};
     sv("fDate",EDIT.date);
@@ -822,11 +851,33 @@ document.getElementById("saveBtn").onclick=async()=>{
   if(ftype==="km"){if(odo==null)return toast("Informe o odômetro",false)}
   if(ftype==="despesa"){const v=num(g("fVal"));if(!v||v<=0)return toast("Informe o valor",false);e.valor=v;e.cat=g("fCat");const d=g("fDesc").trim();if(d)e.desc=d.slice(0,80)}
   if(e.odo!=null){const prev=E.filter(x=>num(x.odo)>0&&x.date<=date&&(!EDIT||x.id!==EDIT.id)).reduce((a,x)=>Math.max(a,num(x.odo)),S.odoIni);if(e.odo<prev)return toast("Odômetro menor que a leitura anterior ("+fmt(prev)+")",false)}
+  if(FS.anx&&FS.anx.length)e.anexos=FS.anx.map(a=>({id:a.id,name:a.name,type:a.type,size:a.size}));
+  try{for(const a of Object.values(FS.anxNew||{}))await IDB.put({...a,entryId:e.id});for(const id of FS.anxDel||[])await IDB.del(id)}catch(err){toast("Não consegui salvar o anexo neste aparelho",false);return}
   if(!EDIT){const g=gapCheck(e);if(g){showGap(g,e);return}}
   const wasEdit=!!EDIT; if(wasEdit)await updateEntry(e); else await addEntry(e); closeSheet(); toast(wasEdit?"Lançamento atualizado ✓":"Lançamento salvo ✓");
 };
 
 /* ======================= persistência ======================= */
+/* ======================= anexos (IndexedDB) ======================= */
+const IDB={db:null,open(){return new Promise((res,rej)=>{if(this.db)return res(this.db);const r=indexedDB.open("ora5",1);
+  r.onupgradeneeded=()=>r.result.createObjectStore("anexos",{keyPath:"id"});r.onsuccess=()=>{this.db=r.result;res(this.db)};r.onerror=()=>rej(r.error)})},
+  async tx(mode,fn){const d=await this.open();return new Promise((res,rej)=>{const t=d.transaction("anexos",mode),st=t.objectStore("anexos");let out;const q=fn(st);if(q)q.onsuccess=()=>out=q.result;t.oncomplete=()=>res(out);t.onerror=()=>rej(t.error)})},
+  put(o){return this.tx("readwrite",st=>st.put(o))},get(id){return this.tx("readonly",st=>st.get(id))},del(id){return this.tx("readwrite",st=>st.delete(id))},all(){return this.tx("readonly",st=>st.getAll())}};
+const fmtSz=b=>b>=1048576?fmt(b/1048576,1)+" MB":Math.max(1,Math.round(b/1024))+" KB";
+async function compressImg(file){try{const url=URL.createObjectURL(file);const img=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+  const M=1800,sc=Math.min(1,M/Math.max(img.width,img.height)),c=document.createElement("canvas");c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);
+  c.getContext("2d").drawImage(img,0,0,c.width,c.height);URL.revokeObjectURL(url);
+  const b=await new Promise(r=>c.toBlob(r,"image/jpeg",.8));return b&&b.size<file.size?b:file}catch(e){return file}}
+async function openAnexo(id){const a=await IDB.get(id).catch(()=>null);if(!a){toast("Anexo não encontrado neste aparelho",false);return}
+  const url=URL.createObjectURL(a.data),v=document.getElementById("viewer");
+  v.innerHTML=`<div class="vtop"><b>${esc(a.name)}</b><div style="display:flex;gap:8px"><button class="btn sm" id="vShare">Compartilhar</button><button class="btn sm" id="vClose">Fechar</button></div></div>
+    <div class="vbody">${a.type.startsWith("image/")?`<img src="${url}">`:`<iframe src="${url}"></iframe>`}</div>`;
+  v.classList.add("on");
+  document.getElementById("vClose").onclick=()=>{v.classList.remove("on");setTimeout(()=>{v.innerHTML="";URL.revokeObjectURL(url)},300)};
+  document.getElementById("vShare").onclick=async()=>{const f=new File([a.data],a.name,{type:a.type});
+    try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f]});return}}catch(e){if(e&&e.name==="AbortError")return}
+    const l=document.createElement("a");l.href=url;l.download=a.name;document.body.appendChild(l);l.click();l.remove()}}
+function anxChips(list,editable){return (list||[]).map(a=>`<span class="anx" data-anx="${esc(a.id)}">${a.type&&a.type.startsWith("image/")?"🖼️":"📄"} ${esc(a.name.length>22?a.name.slice(0,19)+"…":a.name)} <small>${fmtSz(a.size||0)}</small>${editable?`<i data-rm="${esc(a.id)}">×</i>`:""}</span>`).join("")}
 function midDate(a,b){return isoU(Math.round((dU(a)+dU(b))/2/DAY)*DAY)}
 function showGap(g,e){
   const box=document.getElementById("gapBox"),p=g.prev,dd=d=>d.slice(8,10)+"/"+d.slice(5,7);
@@ -874,6 +925,7 @@ async function updateEntry(e){
   if(db){try{await db.collection("entries").doc(e.id).set(e)}catch(err){toast("Não salvou na nuvem — ficou só neste aparelho",false)}}
 }
 async function removeEntry(id){
+  const old=E.find(e=>e.id===id);if(old&&old.anexos)for(const a of old.anexos)IDB.del(a.id).catch(()=>{});
   E=E.filter(e=>e.id!==id);cache();render();
   if(db){try{await db.collection("entries").doc(id).delete()}catch(err){toast("Erro ao apagar na nuvem",false)}}
 }
@@ -1030,14 +1082,23 @@ function buildIpva(){
   delBtns("fIpva","ipv","ipvas");
 }
 const LS=k=>{try{return localStorage.getItem(k)}catch(e){return null}}, LSs=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+const b64=blob=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(blob)});
+let BKFILE=null,BKT=null;
+async function bkBuild(){let anexos=[];try{const all=await IDB.all();const used=new Set(E.flatMap(e=>(e.anexos||[]).map(a=>a.id)));
+    for(const a of all||[])if(used.has(a.id))anexos.push({id:a.id,entryId:a.entryId,name:a.name,type:a.type,data:await b64(a.data)})}catch(e){}
+  const txt=JSON.stringify({v:3,app:"ORA 5",salvoEm:new Date().toISOString(),settings:S,entries:E,anexos});
+  return new File([txt],`ora5-backup-${todayISO()}.json`,{type:"application/json"})}
+function bkPrep(){clearTimeout(BKT);BKT=setTimeout(async()=>{BKFILE=await bkBuild();const el=document.getElementById("bkSize");if(el)el.textContent="Tamanho do backup: "+fmtSz(BKFILE.size)},600)}
 function bkData(){return JSON.stringify({v:2,app:"ORA 5",salvoEm:new Date().toISOString(),settings:S,entries:E},null,1)}
 async function restoreObj(o){if(!o||!Array.isArray(o.entries))throw 0;
+  let na=0;for(const a of o.anexos||[]){try{if(!a.id||!a.data)continue;const ex=await IDB.get(a.id);if(ex)continue;const blob=await (await fetch(a.data)).blob();await IDB.put({id:a.id,entryId:a.entryId,name:a.name,type:a.type,data:blob});na++}catch(e){}}
   S={...DEF,...(o.settings||{})};saveSettings();buildSettings();applyLook&&applyLook();
   const ids=new Set(E.map(e=>e.id));let n=0;
   for(const e of o.entries){if(e&&e.id&&e.date&&e.type&&!ids.has(e.id)){await addEntry(e);n++}}
   toast(`Backup restaurado ✓ (${n} lançamento${n===1?"":"s"} novo${n===1?"":"s"})`);bkUI()}
 function bkUI(){const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0,el=document.getElementById("bkInfo");
   const dias=lb?Math.floor((Date.now()-lb)/864e5):null;
+  bkPrep();
   if(el)el.innerHTML=lb?`Último backup: <b>${new Date(lb).toLocaleDateString("pt-BR")}</b> (${dias===0?"hoje":dias===1?"ontem":"há "+dias+" dias"})${ch>lb?" · há lançamentos novos desde então":""}`:"Nenhum backup em arquivo ainda.";
   const bn=document.getElementById("bkBanner"),snz=+LS("oc_bksnz")||0;
   const show=E.length>0&&ch>lb&&(!lb||Date.now()-lb>7*864e5)&&Date.now()>snz;
@@ -1045,8 +1106,7 @@ function bkUI(){const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0,el=document.getElem
      <div style="font-size:22px">💾</div><div style="flex:1"><b style="font-size:13.5px">${lb?`Faz ${dias} dias sem backup`:"Você ainda não fez backup"}</b><div class="sub" style="font-size:12px">Salve no iCloud para não perder seus lançamentos.</div></div>
      <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><button class="btn sm pri" id="bnSave" style="padding:8px 12px">Salvar</button><button class="link" id="bnLater" style="padding:0;font-size:11.5px">depois</button></div></div>`:"";
   if(show){document.getElementById("bnSave").onclick=saveBk;document.getElementById("bnLater").onclick=()=>{LSs("oc_bksnz",Date.now()+864e5);bkUI()}}}
-async function saveBk(){const d=todayISO(),name=`ora5-backup-${d}.json`,txt=bkData();
-  const file=new File([txt],name,{type:"application/json"});
+async function saveBk(){const file=BKFILE||await bkBuild(),name=file.name;
   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Backup ORA 5"});LSs("oc_bk",Date.now());bkUI();toast("Backup salvo ✓");return}}
   catch(e){if(e&&e.name==="AbortError"){toast("Backup cancelado",false);return}}
   try{const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
@@ -1106,7 +1166,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611151020";
+const APP_V="202611151028";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
