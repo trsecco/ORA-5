@@ -207,6 +207,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
         <div class="progl" style="margin-top:12px"><span id="gL"></span><span id="gR"></span></div></div>
     </div>
 
+    <div id="bkBanner"></div>
     <div id="homeEmpty"></div>
 
     <div class="grid2">
@@ -296,8 +297,12 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
     </div>
     <div class="sect">Backup</div>
     <div class="glass" style="padding:14px 16px">
-      <div class="sub">Seus lançamentos ficam guardados neste iPhone. Copie um backup de vez em quando (ex.: cole numa nota) e use Restaurar se trocar de aparelho.</div>
-      <div style="display:flex;gap:8px;margin-top:10px"><button class="btn sm" id="bCopy">Copiar backup</button><button class="btn sm" id="bImp">Restaurar</button></div>
+      <div class="sub">Seus lançamentos ficam guardados neste iPhone. Salve um backup em <b>Arquivos → iCloud Drive</b> de vez em quando: ele sobrevive se você apagar o app ou trocar de celular.</div>
+      <div class="sub" id="bkInfo" style="margin-top:8px;font-size:12px"></div>
+      <button class="btn pri" id="bFile" style="margin-top:12px">💾 Salvar backup no iCloud</button>
+      <button class="btn" id="bLoad" style="margin-top:8px">Restaurar de um arquivo</button>
+      <input type="file" id="bFileIn" accept=".json,application/json" style="display:none">
+      <div style="display:flex;gap:14px;margin-top:8px"><button class="link" id="bCopy">Copiar como texto</button><button class="link" id="bImp">Colar texto</button></div>
       <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
     </div>
     <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro (pelos dias da apólice) e IPVA (dividido em jan–mar) entram sozinhos. Manutenção e outros gastos do ORA você lança como despesa.</p>
@@ -357,7 +362,7 @@ const segDia=(c,d)=>{const L=SEG(c);const f=L.filter(x=>d>=x.de&&d<x.ate).pop();
 const ipvaAno=(c,y)=>{const f=(S.ipvas||[]).find(x=>x&&x.car===c&&String(x.ano)===String(y));return f?num(f.valor):(c==="ora"?S.ipvaOra:S.ipvaCiv)};
 const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarD(e.date).t;
 try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
-const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));localStorage.setItem("oc_e",JSON.stringify(E))}catch(e){}};
+const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));const ej=JSON.stringify(E);if(localStorage.getItem("oc_e")!==ej)localStorage.setItem("oc_chg",Date.now());localStorage.setItem("oc_e",ej)}catch(e){}};
 
 /* ======================= utils ======================= */
 const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -428,6 +433,7 @@ function compute(){
 function render(){
   const R=compute();
   const has=E.length>0;
+  try{bkUI()}catch(e){}
   // hero
   let HM="ger"; try{HM=localStorage.getItem("oc_hero")||"ger"}catch(e){}
   document.querySelectorAll("#heroSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===HM)); segInd(document.getElementById("heroSeg"));
@@ -1023,6 +1029,32 @@ function buildIpva(){
       S.ipvas=(S.ipvas||[]).filter(x=>!(x.car===car&&String(x.ano)===ano)).concat({id:"i"+Date.now().toString(36),car,ano,valor:v});saveSettings();buildSettings();toast("IPVA salvo ✓")});
   delBtns("fIpva","ipv","ipvas");
 }
+const LS=k=>{try{return localStorage.getItem(k)}catch(e){return null}}, LSs=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+function bkData(){return JSON.stringify({v:2,app:"ORA 5",salvoEm:new Date().toISOString(),settings:S,entries:E},null,1)}
+async function restoreObj(o){if(!o||!Array.isArray(o.entries))throw 0;
+  S={...DEF,...(o.settings||{})};saveSettings();buildSettings();applyLook&&applyLook();
+  const ids=new Set(E.map(e=>e.id));let n=0;
+  for(const e of o.entries){if(e&&e.id&&e.date&&e.type&&!ids.has(e.id)){await addEntry(e);n++}}
+  toast(`Backup restaurado ✓ (${n} lançamento${n===1?"":"s"} novo${n===1?"":"s"})`);bkUI()}
+function bkUI(){const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0,el=document.getElementById("bkInfo");
+  const dias=lb?Math.floor((Date.now()-lb)/864e5):null;
+  if(el)el.innerHTML=lb?`Último backup: <b>${new Date(lb).toLocaleDateString("pt-BR")}</b> (${dias===0?"hoje":dias===1?"ontem":"há "+dias+" dias"})${ch>lb?" · há lançamentos novos desde então":""}`:"Nenhum backup em arquivo ainda.";
+  const bn=document.getElementById("bkBanner"),snz=+LS("oc_bksnz")||0;
+  const show=E.length>0&&ch>lb&&(!lb||Date.now()-lb>7*864e5)&&Date.now()>snz;
+  bn.innerHTML=show?`<div class="glass card" style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+     <div style="font-size:22px">💾</div><div style="flex:1"><b style="font-size:13.5px">${lb?`Faz ${dias} dias sem backup`:"Você ainda não fez backup"}</b><div class="sub" style="font-size:12px">Salve no iCloud para não perder seus lançamentos.</div></div>
+     <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end"><button class="btn sm pri" id="bnSave" style="padding:8px 12px">Salvar</button><button class="link" id="bnLater" style="padding:0;font-size:11.5px">depois</button></div></div>`:"";
+  if(show){document.getElementById("bnSave").onclick=saveBk;document.getElementById("bnLater").onclick=()=>{LSs("oc_bksnz",Date.now()+864e5);bkUI()}}}
+async function saveBk(){const d=todayISO(),name=`ora5-backup-${d}.json`,txt=bkData();
+  const file=new File([txt],name,{type:"application/json"});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:"Backup ORA 5"});LSs("oc_bk",Date.now());bkUI();toast("Backup salvo ✓");return}}
+  catch(e){if(e&&e.name==="AbortError"){toast("Backup cancelado",false);return}}
+  try{const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+    LSs("oc_bk",Date.now());bkUI();toast("Backup baixado ✓ — mova para o iCloud em Arquivos")}catch(e){toast("Não foi possível salvar o arquivo",false)}}
+document.getElementById("bFile").onclick=saveBk;
+document.getElementById("bLoad").onclick=()=>document.getElementById("bFileIn").click();
+document.getElementById("bFileIn").onchange=async ev=>{const f=ev.target.files&&ev.target.files[0];if(!f)return;
+  try{await restoreObj(JSON.parse(await f.text()))}catch(e){toast("Arquivo de backup inválido",false)}ev.target.value=""};
 document.getElementById("bCopy").onclick=async()=>{
   const txt=JSON.stringify({v:1,settings:S,entries:E});
   try{await navigator.clipboard.writeText(txt);toast("Backup copiado ✓")}catch(e){const ta=document.getElementById("impTxt");ta.style.display="block";ta.value=txt;ta.select();toast("Copie o texto abaixo",false)}
@@ -1030,12 +1062,7 @@ document.getElementById("bCopy").onclick=async()=>{
 document.getElementById("bImp").onclick=async()=>{
   const ta=document.getElementById("impTxt");
   if(ta.style.display!=="block"||!ta.value.trim()){ta.style.display="block";ta.value="";ta.focus();return}
-  try{const o=JSON.parse(ta.value);if(!Array.isArray(o.entries))throw 0;
-    S={...DEF,...(o.settings||{})};saveSettings();buildSettings();
-    const ids=new Set(E.map(e=>e.id));
-    for(const e of o.entries){if(e&&e.id&&e.date&&e.type&&!ids.has(e.id)){await addEntry(e)}}
-    ta.value="";ta.style.display="none";toast("Backup restaurado ✓");
-  }catch(e){toast("Backup inválido",false)}
+  try{await restoreObj(JSON.parse(ta.value));ta.value="";ta.style.display="none"}catch(e){toast("Backup inválido",false)}
 };
 
 /* ======================= aparência ======================= */
@@ -1079,7 +1106,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611151015";
+const APP_V="202611151020";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
