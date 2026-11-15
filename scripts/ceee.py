@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lê as faturas da CEEE Equatorial no Gmail (IMAP) e atualiza contas.json.
+"""Leitor da fatura da CEEE Equatorial (referência para o importador do app). Não roda automaticamente.
 
 Uso:
   python scripts/ceee.py                 # busca no Gmail (precisa de GMAIL_USER e GMAIL_APP_PASSWORD)
