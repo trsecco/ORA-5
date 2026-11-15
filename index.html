@@ -830,6 +830,12 @@ async function initDB(){
       if(p>0){GAS={preco:p,semana:d.semana||"",fonte:d.fonte||""};const old=S.gas;applyGas();cache();
         if(!document.querySelector("#v-set input:focus"))buildSettings();render();if(old!==S.gas)saveSettings()}}
   }catch(e){}
+  try{const r=await fetch("contas.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();let ch=false;S.faturas=S.faturas||[];
+    (d.contas||[]).forEach(c=>{const t=num(c.tarifa)||(num(c.energia)>0&&num(c.kwh)>0?num(c.energia)/num(c.kwh):null);if(!c.ref||!c.de||!c.ate||!(t>0&&t<10))return;
+      const f={id:"m"+c.ref,ref:c.ref,de:c.de,ate:c.ate,tarifa:Math.round(t*10000)/10000,kwh:num(c.kwh)||undefined,valor:num(c.energia)||undefined,src:"email"};
+      const i=S.faturas.findIndex(x=>x.ref===c.ref);
+      if(i<0){S.faturas.push(f);ch=true}else if(S.faturas[i].src==="email"||S.faturas[i].id==="f"+c.ref.replace("-","")){if(JSON.stringify(S.faturas[i])!==JSON.stringify(f)){S.faturas[i]=f;ch=true}}});
+    if(ch){saveSettings();buildSettings();render()}}}catch(e){}
   try{const r=await fetch("fipe.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d.ora&&d.civic){FIPE=d;buildSettings();render()}}}catch(e){}
 }
 function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
@@ -861,7 +867,7 @@ function buildPeriods(){
   const start=mkey(S.inicio), now=mkey(todayISO());
   S.faturas=S.faturas||[]; S.seguros=S.seguros||[]; S.ipvas=S.ipvas||[];
   const L=FAT().slice().reverse(), dd=d=>d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(2,4);
-  const fatRow=f=>`<div class="entry"><div class="ei" style="background:rgba(255,255,255,.06)">💡</div><div class="et"><b>Conta ${mlabel(f.ref)} · ${brl2(num(f.tarifa))}/kWh</b><span>leituras ${dd(f.de)} → ${dd(f.ate)}${f.kwh?" · "+fmt(num(f.kwh))+" kWh":""}</span></div><button class="del" data-fat="${esc(f.id)}">×</button></div>`;
+  const fatRow=f=>`<div class="entry"><div class="ei" style="background:rgba(255,255,255,.06)">💡</div><div class="et"><b>Conta ${mlabel(f.ref)} · ${brl2(num(f.tarifa))}/kWh${f.src==="email"?' <span class="chip g" style="font-size:10px;padding:2px 7px">automática</span>':""}</b><span>leituras ${dd(f.de)} → ${dd(f.ate)}${f.kwh?" · "+fmt(num(f.kwh))+" kWh":""}</span></div><button class="del" data-fat="${esc(f.id)}">×</button></div>`;
   document.getElementById("fTar").innerHTML=(L.length?L.slice(0,3).map(fatRow).join("")+oldList(L.slice(3).map(fatRow)):`<div class="sub" style="padding:12px 0">Nenhuma conta lançada.</div>`)+
   `<div id="fatForm" style="display:none;border-top:1px solid var(--line)">
     <div class="field"><label>Referência<small>mês da conta</small></label><input id="fRef" type="month"></div>
@@ -1020,7 +1026,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611150942";
+const APP_V="202611150951";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
