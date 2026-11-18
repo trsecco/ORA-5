@@ -317,7 +317,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
     </div>
     <div class="sect">Recebimento do ORA</div><div class="glass" style="padding:2px 16px" id="fRec"></div>
-    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro (pelos dias da apólice) e IPVA (dividido em jan–mar) entram sozinhos. Manutenção e outros gastos do ORA você lança como despesa.</p>
+    <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro (pelos dias da apólice) e IPVA (dividido em jan–mar) entram sozinhos. Revisões e pneus contam por km rodado, corrigidos pelo IPCA; para o ORA, lance a troca real como despesa (Pneus ou Revisão). Outros gastos do ORA você lança como despesa.</p>
   </section>
 </div>
 
@@ -350,9 +350,9 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 /* ======================= estado ======================= */
 const DEF={
   inicio:"2027-02-01", odoIni:0, socEnt:null, recOk:0,
-  gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
+  gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, revCiv:2500, revCivKm:10000, pneuCiv:3000, pneuCivKm:55000, ipcaBase:"2026-11",
   parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,depOra1:15,depOra:7,depCiv:4}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
-  kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
+  kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, revOra:1000, revOraKm:24000, pneuOra:5150, pneuOraKm:45000
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
@@ -390,6 +390,13 @@ const mkey=iso=>iso.slice(0,7);
 const mlabel=k=>{const[y,m]=k.split("-");return MES[+m-1]+"/"+y.slice(2)};
 const mname=k=>{const[y,m]=k.split("-");return MES[+m-1]+" "+y};
 const addM=(k,n)=>{let[y,m]=k.split("-").map(Number);m+=n;y+=Math.floor((m-1)/12);m=((m-1)%12+12)%12+1;return y+"-"+String(m).padStart(2,"0")};
+/* manutenção por km, corrigida pelo IPCA desde a data-base dos preços */
+let IPCA=null; const IPCA_DEF=Math.pow(1.045,1/12)-1;
+function ipcaF(mk){const b=S.ipcaBase||"2026-11";if(!mk||mk<=b)return 1;let f=1;for(let k=addM(b,1);k<=mk;k=addM(k,1)){const r=IPCA&&IPCA.mensal?IPCA.mensal[k]:null;f*=1+(r!=null&&isFinite(+r)?+r/100:IPCA_DEF)}return f}
+const rkm=(v,k)=>{const a=+S[v],b=+S[k];return a>0&&b>0?a/b:0};
+const RT={revCiv:()=>rkm("revCiv","revCivKm"),pneuCiv:()=>rkm("pneuCiv","pneuCivKm"),revOra:()=>rkm("revOra","revOraKm"),pneuOra:()=>rkm("pneuOra","pneuOraKm")};
+const manCivKm=mk=>(RT.revCiv()+RT.pneuCiv())*ipcaF(mk), manOraKm=mk=>(RT.revOra()+RT.pneuOra())*ipcaF(mk);
+const PROV={"Pneus":"pneuOra","Revisão":"revOra"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 function toast(msg,ok=true){const t=document.getElementById("toast");t.textContent=msg;t.style.color=ok?"#5cb88a":"#e07a6e";t.classList.add("on");clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove("on"),2200)}
 function niceStep(x){if(x<=0)return 1;const p=Math.pow(10,Math.floor(Math.log10(x)));const f=x/p;return(f<1.5?1:f<3?2:f<7?5:10)*p}
@@ -412,12 +419,12 @@ function compute(){
   }
   E.forEach(e=>{const m=M[mkey(e.date)];if(!m)return;m.items.push(e);
     if(e.type==="recarga"){m.energia+=custoRec(e);m.kwh+=num(e.kwh)||0}
-    if(e.type==="despesa"){m.desp+=num(e.valor)||0}
+    if(e.type==="despesa"&&!PROV[e.cat]){m.desp+=num(e.valor)||0}
   });
 
   // fixos e plano
   const planFuelEco=S.kmPlan*(S.gas/S.kml - S.kwh100/100*(1+S.perdas/100)*S.tarifa);
-  const today=new Date(), tk=mkey(todayISO());
+  const today=new Date(), tk=mkey(todayISO()); const PACC={};
   const dim=new Date(today.getFullYear(),today.getMonth()+1,0).getDate();
   months.forEach(k=>{const m=M[k];const mi=+k.split("-")[1]-1;
     let frac=1; if(k===tk){frac=today.getDate()/dim} if(k>tk) frac=0;
@@ -428,13 +435,17 @@ function compute(){
     m.segOra=0;m.segCiv=0; for(let t=dU(a);t<=dU(b);t+=DAY){const d=isoU(t);m.segOra+=segDia("ora",d);m.segCiv+=segDia("civ",d)}
     const ipvaM=mi<3;
     const yr=k.slice(0,4);
-    m.civFix=m.segCiv+((ipvaM?ipvaAno("civ",yr)/3:0)+S.manutCiv/12)*frac;
+    m.civFix=m.segCiv+(ipvaM?ipvaAno("civ",yr)/3:0)*frac;
+    m.civMan=m.km*manCivKm(k);
+    // ORA: provisão por km (pneus, revisões); quando a troca/revisão real é lançada, ela substitui o que foi provisionado desde a anterior
+    m.oraMan=0; for(const[cat,key]of Object.entries(PROV)){const p=m.km*RT[key]()*ipcaF(k);PACC[key]=(PACC[key]||0)+p;m.oraMan+=p;
+      m.items.filter(e=>e.type==="despesa"&&e.cat===cat).forEach(e=>{m.oraMan+=(num(e.valor)||0)-PACC[key];PACC[key]=0})}
     { const lim=k===tk?todayISO():k>tk?"":mE; m.parc=lim?(pagasAte(lim)-pagasAte(isoU(dU(mS)-DAY)))*(+S.parcela||0):0; }
     m.oraFix=m.segOra+m.parc+(ipvaM?ipvaAno("ora",yr)/3:0)*frac;
-    m.civTot=m.civFuel+m.civFix; m.oraTot=m.energia+m.oraFix+m.desp;
+    m.civTot=m.civFuel+m.civFix+m.civMan; m.oraTot=m.energia+m.oraFix+m.desp+m.oraMan;
     m.ecoFuel=m.civFuel-m.energia; m.ecoTot=m.civTot-m.oraTot;
     m.planFuel=planFuelEco*frac;
-    m.planTot=planFuelEco*frac+m.civFix-m.oraFix-(S.manutOra/12)*frac;
+    m.planTot=planFuelEco*frac+m.civFix-m.oraFix+S.kmPlan*frac*(manCivKm(k)-manOraKm(k));
   });
   const L=months.map(k=>M[k]);
   const sum=f=>L.reduce((a,m)=>a+m[f],0);
@@ -537,7 +548,7 @@ function drawCum(R){
 function rodPlan(mk){const y=mk.slice(0,4),mi=+mk.slice(5,7)-1,d0=mk+"-01",d1=isoU(Date.UTC(+y,mi+1,0));
   let sO=0,sC=0;for(let t=dU(d0);t<=dU(d1);t+=DAY){const d=isoU(t);sO+=segDia("ora",d);sC+=segDia("civ",d)}
   const tar=tarD(todayISO()).t, fuel=S.kmPlan*(S.gas/S.kml-S.kwh100/100*(1+perdasEf()/100)*tar);
-  const civ=sC+(mi<3?ipvaAno("civ",y)/3:0)+S.manutCiv/12, ora=sO+(mi<3?ipvaAno("ora",y)/3:0)+S.manutOra/12;
+  const civ=sC+(mi<3?ipvaAno("civ",y)/3:0)+S.kmPlan*manCivKm(mk), ora=sO+(mi<3?ipvaAno("ora",y)/3:0)+S.kmPlan*manOraKm(mk);
   return fuel+civ-ora}
 function drawPat(){
   const svg=document.getElementById("pat");if(!svg)return;const W=svg.clientWidth||340,H=200,pl=40,pb=22,pt=12;
@@ -758,7 +769,7 @@ function buildForm(){
   } else if(ftype==="km"){
     h+=odoBlock(false);
   } else {
-    h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Manutenção</option><option>Pneus</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
+    h+=`<div class="field"><label>Categoria</label><select id="fCat"><option>Revisão</option><option>Pneus</option><option>Manutenção</option><option>Lavagem</option><option>Estacionamento</option><option>Pedágio</option><option>Outros</option></select></div>`;
     h+=row("fVal","Valor","R$",'inputmode="decimal" placeholder="0,00"');
     h+=row("fDesc","Descrição","opcional",'placeholder="—" style="text-align:left;width:150px"');
   }
@@ -951,15 +962,16 @@ async function initDB(){
       const i=S.faturas.findIndex(x=>x.ref===c.ref);
       if(i<0){S.faturas.push(f);ch=true}else if(S.faturas[i].src==="email"||S.faturas[i].id==="f"+c.ref.replace("-","")){if(JSON.stringify(S.faturas[i])!==JSON.stringify(f)){S.faturas[i]=f;ch=true}}});
     if(ch){saveSettings();buildSettings();render()}}}catch(e){}
+  try{const r=await fetch("ipca.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d&&d.mensal){IPCA=d;if(!document.querySelector("#v-set input:focus"))buildSettings();render()}}}catch(e){}
   try{const r=await fetch("fipe.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d.ora&&d.civic){FIPE=d;buildSettings();render()}}}catch(e){}
 }
 function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
 /* ======================= ajustes ======================= */
 const FIELDS={
   fIni:[["inicio","Data de chegada","início da comparação e das prestações","date"],["odoIni","Odômetro na entrega","km","num"]],
-  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
-  fFix:[["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
-  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","mostra o slider de kWh medidos em cada recarga em casa","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
+  fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["revCiv","Revisões","R$ por revisão · sem pneus","num"],["revCivKm","Intervalo das revisões","km","num"],["pneuCiv","Jogo de pneus","R$ · com montagem e alinhamento","num"],["pneuCivKm","Duração dos pneus","km","num"]],
+  fFix:[["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["revOra","Revisões","R$ por revisão · média do plano GWM","num"],["revOraKm","Intervalo das revisões","km","num"],["pneuOra","Jogo de pneus","R$ · com montagem e alinhamento","num"],["pneuOraKm","Duração dos pneus","km","num"]],
+  fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","mostra o slider de kWh medidos em cada recarga em casa","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"]]
 };
 function buildSettings(){
   for(const[box,list]of Object.entries(FIELDS)){if(box==="fIni")continue;
@@ -969,15 +981,20 @@ function buildSettings(){
       if(k==="perdas"){const pm=perdasMed();if(pm)u=`medidas: ${fmt(pm.p,1)}% em ${pm.n} recargas · usadas no cálculo`}
       return `<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${dis} ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`}).join("");
   }
-  buildRec();buildPeriods();
+  manInfo();buildRec();buildPeriods();
   document.querySelectorAll("#v-set .tog").forEach(b=>b.onclick=()=>{const k=b.dataset.b;S[k]=S[k]?0:1;applyGas();saveSettings();buildSettings()});
   document.querySelectorAll("#v-set .field input").forEach(inp=>inp.addEventListener("input",()=>{
     const k=inp.dataset.k; if(!k) return;
     if(k==="inicio"){if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value)){S.inicio=inp.value;saveSettings();buildCt();recSum();recBanner()}return}
-    const v=num(inp.value); if(v==null||v<0)return; if(["kml","kwh100"].includes(k)&&v===0)return;
-    S[k]=v; saveSettings(); if(k==="odoIni")recSum();
+    const v=num(inp.value); if(v==null||v<0)return; if(["kml","kwh100","revCivKm","pneuCivKm","revOraKm","pneuOraKm"].includes(k)&&v===0)return;
+    S[k]=v; saveSettings(); if(k==="odoIni")recSum(); if(/^(rev|pneu)/.test(k))manInfo();
   }));
 }
+function manInfo(){const f=ipcaF(mkey(todayISO())),b=S.ipcaBase||"2026-11",c=x=>"R$ "+x.toFixed(3).replace(".",",");
+  const corr=f>1.0005?` · IPCA desde ${mname(b)}: +${fmt((f-1)*100,1)}%`:` · corrigido pelo IPCA a partir de ${mname(b)}`;
+  [["fCiv",RT.revCiv(),RT.pneuCiv()],["fFix",RT.revOra(),RT.pneuOra()]].forEach(([id,r,p])=>{const box=document.getElementById(id);if(!box)return;let el=box.querySelector(".maninfo");
+    if(!el){el=document.createElement("div");el.className="sub maninfo";el.style.cssText="font-size:12px;padding:10px 0 12px;border-top:1px solid var(--line)";box.appendChild(el)}
+    el.innerHTML=`Por km rodado: <b>${c((r+p)*f)}</b> (revisões ${c(r*f)} + pneus ${c(p*f)})${corr}.${id==="fFix"?" Ao lançar uma despesa <b>Pneus</b> ou <b>Revisão</b>, o valor real substitui o que foi provisionado desde a troca anterior.":""}`})}
 /* ---- recebimento do ORA (preenchido uma vez) ---- */
 let REC_OPEN=false;
 const recTxt=()=>[S.inicio.split("-").reverse().join("/"),fmt(num(S.odoIni)||0)+" km",S.socEnt!=null?S.socEnt+"%":"carga —"].join(" · ");
@@ -1209,7 +1226,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611180643";
+const APP_V="202611180711";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
