@@ -218,6 +218,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
         <div class="progl" style="margin-top:12px"><span id="gL"></span><span id="gR"></span></div></div>
     </div>
 
+    <div id="recBanner"></div>
     <div id="bkBanner"></div>
     <div id="homeEmpty"></div>
 
@@ -294,7 +295,6 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   </section>
 
   <section class="view" id="v-set">
-    <div class="sect">Início</div><div class="glass" style="padding:2px 16px" id="fIni"></div>
     <div class="sect">Civic 2013 (referência)</div><div class="glass" style="padding:2px 16px" id="fCiv"></div>
     <div class="sect">ORA 5 — custos fixos</div><div class="glass" style="padding:2px 16px" id="fFix"></div>
     <div class="sect">Plano (o que você espera)</div><div class="glass" style="padding:2px 16px" id="fPlan"></div>
@@ -316,6 +316,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
       <div style="display:flex;gap:14px;margin-top:8px"><button class="link" id="bCopy">Copiar como texto</button><button class="link" id="bImp">Colar texto</button></div>
       <textarea id="impTxt" placeholder="Cole aqui o backup e toque em Restaurar" style="display:none"></textarea>
     </div>
+    <div class="sect">Recebimento do ORA</div><div class="glass" style="padding:2px 16px" id="fRec"></div>
     <p class="note">O preço da gasolina é atualizado toda semana com a média da ANP em Porto Alegre (desligue "Preço automático" para digitar o seu). Cada lançamento guarda o preço do dia em que foi feito, então o histórico não muda. Mensalidade, seguro (pelos dias da apólice) e IPVA (dividido em jan–mar) entram sozinhos. Manutenção e outros gastos do ORA você lança como despesa.</p>
   </section>
 </div>
@@ -348,7 +349,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 <script>
 /* ======================= estado ======================= */
 const DEF={
-  inicio:"2027-02-01", odoIni:0,
+  inicio:"2027-02-01", odoIni:0, socEnt:null, recOk:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, manutCiv:2500,
   parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,depOra1:15,depOra:7,depCiv:4}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
   kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, manutOra:700
@@ -447,7 +448,7 @@ function compute(){
 function render(){
   const R=compute();
   const has=E.length>0;
-  try{bkUI()}catch(e){}
+  try{bkUI()}catch(e){} try{recBanner()}catch(e){}
   // hero
   let HM="ger"; try{HM=localStorage.getItem("oc_hero")||"ger"}catch(e){}
   document.querySelectorAll("#heroSeg button").forEach(b=>b.classList.toggle("on",b.dataset.t===HM)); segInd(document.getElementById("heroSeg"));
@@ -636,7 +637,8 @@ function detail(e,iv,td){const D=[];const add=(l,v,h)=>{if(v!=null&&v!=="")D.pus
 let IV={};
 const batAdd=e=>e.est?num(e.kwhBat)||0:(e.socIni!=null&&e.socFim>e.socIni?(e.socFim-e.socIni)/100*S.bat:(num(e.kwh)||0)/(1+perdasEf()/100));
 const SORTE=()=>E.slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:(a.created||0)-(b.created||0));
-function calcIV(){IV={};let po=S.odoIni,pe=null,add=0;
+const recBase=()=>S.socEnt!=null?{id:"_ent",type:"recarga",base:1,date:S.inicio,odo:S.odoIni,socFim:S.socEnt}:null;
+function calcIV(){IV={};let po=S.odoIni,pe=recBase(),add=0;
   SORTE().forEach(e=>{
     const o=num(e.odo);
     if(o>0&&o>po){const km=o-po,iv={km};
@@ -648,8 +650,8 @@ function consBat(){calcIV();const v=Object.values(IV).filter(x=>x.c).map(x=>x.c/
   return v.length?v[Math.floor(v.length/2)]:S.kwh100/(1+perdasEf()/100)}
 function gapCheck(e){if(e.type!=="recarga"||!(num(e.odo)>0)||e.socIni==null)return null;
   const L=SORTE().filter(x=>x.id!==e.id&&x.date<=e.date);
-  const lastOdo=L.filter(x=>num(x.odo)>0).pop(); if(!lastOdo||lastOdo.type!=="recarga"||lastOdo.socFim==null)return null;
-  const after=L.slice(L.indexOf(lastOdo)+1).filter(x=>x.type==="recarga").reduce((a,x)=>a+batAdd(x),0);
+  const lastOdo=L.filter(x=>num(x.odo)>0).pop()||(e.date>=S.inicio?recBase():null); if(!lastOdo||lastOdo.type!=="recarga"||lastOdo.socFim==null)return null;
+  const after=(lastOdo.base?L.filter(x=>x.date>=S.inicio):L.slice(L.indexOf(lastOdo)+1)).filter(x=>x.type==="recarga").reduce((a,x)=>a+batAdd(x),0);
   const km=num(e.odo)-num(lastOdo.odo); if(km<60)return null;
   const avg=consBat(), exp=km*avg/100, obs=(lastOdo.socFim-e.socIni)/100*S.bat+after, miss=exp-Math.max(0,obs);
   if(miss>Math.max(8,.35*exp))return{km,avg,exp,obs:Math.max(0,obs),miss,prev:lastOdo};return null}
@@ -886,7 +888,7 @@ function showGap(g,e){
   const mid=midDate(p.date,e.date)>e.date?e.date:midDate(p.date,e.date);
   box.innerHTML=`<div class="gin">
     <div style="font-size:30px">⚠️</div><h3 style="margin:6px 0 8px;font-size:18px">Parece que faltou uma recarga</h3>
-    <p class="sub" style="font-size:13.5px;line-height:1.5">Desde a recarga de <b>${dd(p.date)}</b> você rodou <b>${fmt(g.km)} km</b>. Com seu consumo médio (~${fmt(g.avg,1)} kWh/100 km), isso gasta uns <b>${fmt(g.exp,1)} kWh</b>, mas a bateria só baixou de ${p.socFim}% para ${e.socIni}% (~${fmt(g.obs,1)} kWh).<br>Faltam cerca de <b style="color:var(--ac2)">${fmt(g.miss,1)} kWh</b> — provavelmente uma recarga não lançada.</p>
+    <p class="sub" style="font-size:13.5px;line-height:1.5">${p.base?"Desde a entrega do carro em":"Desde a recarga de"} <b>${dd(p.date)}</b> você rodou <b>${fmt(g.km)} km</b>. Com seu consumo médio (~${fmt(g.avg,1)} kWh/100 km), isso gasta uns <b>${fmt(g.exp,1)} kWh</b>, mas a bateria só baixou de ${p.socFim}% para ${e.socIni}% (~${fmt(g.obs,1)} kWh).<br>Faltam cerca de <b style="color:var(--ac2)">${fmt(g.miss,1)} kWh</b> — provavelmente uma recarga não lançada.</p>
     <div id="gapForm" style="display:none;text-align:left;margin-top:6px">
       <div class="field"><label>Data da recarga esquecida</label><input id="gDate" type="date" value="${mid}" min="${p.date}" max="${e.date}"></div>
       <div class="field"><label>Onde</label><div class="seg" id="gLoc" style="width:190px"><div class="ind"></div><button data-l="casa" class="on">Em casa</button><button data-l="rua">Eletroposto</button></div></div>
@@ -954,28 +956,62 @@ async function initDB(){
 function applyGas(){if(S.gasAuto&&GAS&&GAS.preco>0)S.gas=GAS.preco}
 /* ======================= ajustes ======================= */
 const FIELDS={
-  fIni:[["inicio","Data de chegada do ORA","início da comparação e das prestações","date"],["odoIni","Odômetro inicial","km na entrega","num"]],
+  fIni:[["inicio","Data de chegada","início da comparação e das prestações","date"],["odoIni","Odômetro na entrega","km","num"]],
   fCiv:[["gasAuto","Preço automático","média ANP de Porto Alegre · semanal","bool"],["gas","Gasolina","R$/litro","num"],["kml","Consumo médio","km/l","num"],["seguroCiv","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaCiv","IPVA padrão","R$/ano · se o ano não estiver lançado","num"],["manutCiv","Manutenção e pneus","R$/ano","num"]],
   fFix:[["seguroOra","Seguro padrão","R$/ano · se não houver apólice","num"],["ipvaOra","IPVA padrão","R$/ano · se o ano não estiver lançado","num"]],
   fPlan:[["kmPlan","Km por mês","planejado","num"],["bat","Bateria do ORA 5","kWh · usada no lançamento rápido","num"],["tarifa","Tarifa padrão","R$/kWh · se não houver conta","num"],["kwh100","Consumo","kWh/100 km","num"],["medidor","Medidor no carregador de casa","mostra o slider de kWh medidos em cada recarga em casa","bool"],["perdas","Perdas na recarga","% · estimativa até haver medições","num"],["manutOra","Manutenção ORA","R$/ano · planejado","num"]]
 };
 function buildSettings(){
-  for(const[box,list]of Object.entries(FIELDS)){
+  for(const[box,list]of Object.entries(FIELDS)){if(box==="fIni")continue;
     document.getElementById(box).innerHTML=list.map(([k,l,u,t])=>{
       if(t==="bool") return `<div class="field"><label>${l}<small>${k==="gasAuto"&&GAS?esc("Última: "+brl2(GAS.preco)+" · "+(GAS.semana||"")):u}</small></label><button class="tog ${S[k]?"on":""}" data-b="${k}"><i></i></button></div>`;
       const dis=(k==="gas"&&S.gasAuto&&GAS)?"disabled":"";
       if(k==="perdas"){const pm=perdasMed();if(pm)u=`medidas: ${fmt(pm.p,1)}% em ${pm.n} recargas · usadas no cálculo`}
       return `<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${dis} ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`}).join("");
   }
-  buildPeriods();
+  buildRec();buildPeriods();
   document.querySelectorAll("#v-set .tog").forEach(b=>b.onclick=()=>{const k=b.dataset.b;S[k]=S[k]?0:1;applyGas();saveSettings();buildSettings()});
   document.querySelectorAll("#v-set .field input").forEach(inp=>inp.addEventListener("input",()=>{
     const k=inp.dataset.k; if(!k) return;
-    if(k==="inicio"){if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value)){S.inicio=inp.value;saveSettings();buildCt()}return}
+    if(k==="inicio"){if(/^\d{4}-\d{2}-\d{2}$/.test(inp.value)){S.inicio=inp.value;saveSettings();buildCt();recSum();recBanner()}return}
     const v=num(inp.value); if(v==null||v<0)return; if(["kml","kwh100"].includes(k)&&v===0)return;
-    S[k]=v; saveSettings();
+    S[k]=v; saveSettings(); if(k==="odoIni")recSum();
   }));
 }
+/* ---- recebimento do ORA (preenchido uma vez) ---- */
+let REC_OPEN=false;
+const recTxt=()=>[S.inicio.split("-").reverse().join("/"),fmt(num(S.odoIni)||0)+" km",S.socEnt!=null?S.socEnt+"%":"carga —"].join(" · ");
+function recSum(){const el=document.getElementById("recSum");if(el)el.textContent=recTxt()}
+function buildRec(){const box=document.getElementById("fRec");if(!box)return;
+  box.innerHTML=`<button id="recTog" style="all:unset;display:flex;align-items:center;gap:12px;width:100%;padding:13px 0;cursor:pointer">
+      <div style="flex:1"><div style="font-size:14.5px;font-weight:600">${S.recOk?'<span style="color:var(--green)">✓</span> ':""}Dados da entrega</div><div class="sub" id="recSum" style="font-size:12px;margin-top:2px"></div></div>
+      <span style="color:var(--tx2);font-size:13px;transition:transform .3s;transform:rotate(${REC_OPEN?90:0}deg)">›</span></button>
+    <div id="recBody" style="display:${REC_OPEN?"block":"none"};border-top:1px solid var(--line)">
+      <div id="fIni"></div>
+      <div class="odo" style="padding:12px 0 4px"><div class="lbl" style="display:flex;justify-content:space-between"><span>Carga na entrega</span><b id="socEv"></b></div>
+        <input type="range" id="socE" min="0" max="100" step="1"></div>
+      <div class="sub" style="font-size:12px;padding:2px 0 8px">Mede o consumo do trajeto entre a entrega e a primeira recarga, e já detecta recarga esquecida nesse trecho.${S.socEnt!=null?' <button class="link" id="socClr" style="padding:0;font-size:12px">Limpar</button>':""}</div>
+      <button class="btn ${S.recOk?"":"pri"} sm" id="recOkB" style="margin:4px 0 14px">${S.recOk?"Confirmado ✓ · tocar para desfazer":"Confirmar recebimento"}</button>
+    </div>`;
+  const list=FIELDS.fIni,f=document.getElementById("fIni");
+  f.innerHTML=list.map(([k,l,u,t])=>`<div class="field"><label>${l}${u?`<small>${u}</small>`:""}</label><input data-k="${k}" ${t==="date"?'type="date"':'inputmode="decimal"'} value="${t==="date"?S[k]:String(S[k]).replace(".",",")}"></div>`).join("");
+  recSum();
+  const sl=document.getElementById("socE"),sv=document.getElementById("socEv");
+  const show=()=>{sv.textContent=S.socEnt!=null?S.socEnt+"%":"não informada";sl.style.opacity=S.socEnt!=null?1:.45};
+  sl.value=S.socEnt!=null?S.socEnt:80;show();
+  sl.oninput=()=>{S.socEnt=+sl.value;show();recSum();saveSettings()};
+  sl.onchange=()=>{buildSettings();render()};
+  const clr=document.getElementById("socClr");if(clr)clr.onclick=()=>{S.socEnt=null;saveSettings();buildSettings();render()};
+  document.getElementById("recTog").onclick=()=>{REC_OPEN=!REC_OPEN;buildSettings()};
+  document.getElementById("recOkB").onclick=()=>{S.recOk=S.recOk?0:1;saveSettings();if(S.recOk){REC_OPEN=false;toast("Recebimento confirmado ✓")}buildSettings();recBanner()};
+}
+function recBanner(){const bn=document.getElementById("recBanner");if(!bn)return;
+  const show=!S.recOk&&todayISO()>=S.inicio;
+  bn.innerHTML=show?`<div class="glass card" style="display:flex;align-items:center;gap:12px;padding:12px 14px">
+     <div style="font-size:22px">🚗</div><div style="flex:1"><b style="font-size:13.5px">O ORA chegou?</b><div class="sub" style="font-size:12px">Confirme a data, o odômetro e a carga da entrega.</div></div>
+     <button class="btn sm pri" id="recGo" style="padding:8px 12px">Confirmar</button></div>`:"";
+  if(show)document.getElementById("recGo").onclick=()=>{REC_OPEN=true;buildSettings();document.querySelector('.tb-row button[data-v="set"]').click();
+    setTimeout(()=>document.getElementById("fRec").scrollIntoView({behavior:"smooth",block:"center"}),350)}}
 function buildPeriods(){
   const start=mkey(S.inicio), now=mkey(todayISO());
   S.faturas=S.faturas||[]; S.seguros=S.seguros||[]; S.ipvas=S.ipvas||[];
@@ -1173,7 +1209,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611180626";
+const APP_V="202611180643";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
