@@ -371,7 +371,9 @@ const DAY=86400000, dU=d=>Date.UTC(+d.slice(0,4),+d.slice(5,7)-1,+d.slice(8,10))
 const SEG=c=>(S.seguros||[]).filter(x=>x&&x.car===c&&x.de&&x.ate&&x.ate>x.de&&num(x.valor)>=0).sort((a,b)=>a.de<b.de?-1:1);
 const segDia=(c,d)=>{const L=SEG(c);const f=L.filter(x=>d>=x.de&&d<x.ate).pop();if(f)return num(f.valor)/((dU(f.ate)-dU(f.de))/DAY);
   const prev=L.filter(x=>x.ate<=d).pop();return (prev?num(prev.valor):(c==="ora"?S.seguroOra:S.seguroCiv))/365};
-const ipvaAno=(c,y)=>{const f=(S.ipvas||[]).find(x=>x&&x.car===c&&String(x.ano)===String(y));return f?num(f.valor):(c==="ora"?S.ipvaOra:S.ipvaCiv)};
+const ipvaCivAuto=y=>{if(typeof FIPE==="undefined"||!FIPE.civic||!Object.keys(FIPE.civic.hist||{}).length)return null;const p=+y-1;return .03*(fipeAt("civic",p+"-09")+fipeAt("civic",p+"-10"))/2};
+const ipvaAno=(c,y)=>{const f=(S.ipvas||[]).find(x=>x&&x.car===c&&String(x.ano)===String(y));if(f)return num(f.valor);
+  if(c==="civ"&&S.ipvaCivAuto!==0){const a=ipvaCivAuto(y);if(a!=null)return a}return c==="ora"?S.ipvaOra:S.ipvaCiv};
 const custoRec=e=>e.local==="rua"?(num(e.valor)||0):(num(e.kwh)||0)*tarD(e.date).t;
 try{E=JSON.parse(localStorage.getItem("oc_e")||"[]")}catch(e){}
 const cache=()=>{try{localStorage.setItem("oc_s",JSON.stringify(S));const ej=JSON.stringify(E);if(localStorage.getItem("oc_e")!==ej)localStorage.setItem("oc_chg",Date.now());localStorage.setItem("oc_e",ej)}catch(e){}};
@@ -1070,7 +1072,12 @@ function buildIpva(){
   const y=String(new Date().getFullYear()), L=(S.ipvas||[]).slice().sort((a,b)=>String(a.ano)<String(b.ano)?1:String(a.ano)>String(b.ano)?-1:a.car<b.car?1:-1);
   const row=x=>`<div class="entry"><div class="ei" style="background:rgba(255,255,255,.06)">🏛️</div><div class="et"><b>${CAR[x.car]} · IPVA ${esc(x.ano)}</b><span>${brl(num(x.valor))} · dividido em jan–mar</span></div><button class="del" data-ipv="${esc(x.id)}">×</button></div>`;
   const cur=L.filter(x=>String(x.ano)>=y), old=L.filter(x=>String(x.ano)<y);
-  document.getElementById("fIpva").innerHTML=(cur.length?cur.map(row).join(""):`<div class="sub" style="padding:12px 0">Nenhum IPVA lançado para ${y} em diante — usando o padrão (ORA ${brl(S.ipvaOra)}, Civic ${brl(S.ipvaCiv)}).</div>`)+oldList(old.map(row));
+  const auto=S.ipvaCivAuto!==0, y0=String(Math.max(+y,+S.inicio.slice(0,4))), yrs=[y0,String(+y0+1)].filter(a=>!(S.ipvas||[]).some(x=>x.car==="civ"&&String(x.ano)===a));
+  const autoRows=auto?yrs.map(a=>{const v=ipvaCivAuto(a);return v==null?"":`<div class="entry"><div class="ei" style="background:rgba(92,184,138,.15)">⚙️</div><div class="et"><b>Civic · IPVA ${a} <span class="chip g" style="font-size:10px;padding:2px 7px">automático</span></b><span>3% × FIPE média set–out/${+a-1} (${brl(v/.03)})${Object.keys((FIPE.civic||{}).hist||{}).sort().pop()<(+a-1)+"-10"?" · projeção":""}</span></div><div class="ev">${brl(v)}</div></div>`}).join(""):"";
+  document.getElementById("fIpva").innerHTML=autoRows+(cur.length?cur.map(row).join(""):(autoRows?"":`<div class="sub" style="padding:12px 0">Nenhum IPVA lançado para ${y} em diante — usando o padrão (ORA ${brl(S.ipvaOra)}, Civic ${brl(S.ipvaCiv)}).</div>`))+oldList(old.map(row))+
+    `<div class="field"><label>IPVA do Civic automático<small>3% da FIPE (média set–out do ano anterior). Um IPVA lançado à mão tem prioridade.</small></label><button class="tog ${auto?"on":""}" id="ipvaAutoTog"><i></i></button></div>
+     <div class="sub" style="padding:0 0 12px;font-size:12px">ORA 5: isento no RS (veículos elétricos, Lei 8.115/85).</div>`;
+  document.getElementById("ipvaAutoTog").onclick=()=>{S.ipvaCivAuto=auto?0:1;saveSettings();buildSettings()};
   formToggle("fIpva","+ Adicionar IPVA",`
     <div class="field"><label>Carro</label><select class="iCar"><option value="ora">ORA 5</option><option value="civ">Civic (referência)</option></select></div>
     <div class="field"><label>Ano</label><input class="iAno" inputmode="numeric" placeholder="${+y+1}"></div>
@@ -1166,7 +1173,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611151028";
+const APP_V="202611180626";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
