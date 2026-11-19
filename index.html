@@ -29,7 +29,11 @@ body{min-height:100vh;overflow-x:hidden}
 .wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 130px)}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
 .brand{display:flex;align-items:center;gap:11px;opacity:.9}.brand img{height:22px;width:auto;display:block}.brand .b-ora{height:24px}.brand i{width:1px;height:18px;background:rgba(255,255,255,.22)}
-h1.wm{margin:16px 0 20px;line-height:0}h1.wm img{height:34px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(0,0,0,.35))}
+h1.wm{margin:14px 0 22px;line-height:0;display:flex;justify-content:center}h1.wm img{height:30px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(0,0,0,.35))}
+.bkdot{all:unset;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.bkdot i{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);transition:background .3s,box-shadow .3s}
+.bkdot.y i{background:#e8b84a;box-shadow:0 0 9px #e8b84a}.bkdot.r i{background:var(--red);box-shadow:0 0 10px var(--red);animation:bkp 2s ease-in-out infinite}
+@keyframes bkp{50%{opacity:.45}}
 .pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
 .pill.ok i{background:var(--green);box-shadow:0 0 8px var(--green)}
@@ -195,7 +199,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 <div class="wrap">
   <div class="top">
     <div class="brand"><img src="img/gwm.png" alt="GWM"><i></i><img src="img/ora.png" alt="ORA" class="b-ora"></div>
-    <div class="pill" id="sync"><i></i><span>conectando…</span></div>
+    <button class="bkdot" id="sync" aria-label="Backup"><i></i></button>
   </div>
   <h1 class="wm"><img src="img/ora5-word.png" alt="ORA 5"></h1>
 
@@ -947,7 +951,15 @@ async function removeEntry(id){
 }
 let sTimer=null,sChain=Promise.resolve();
 function saveSettings(){cache();render();if(!db)return;clearTimeout(sTimer);sTimer=setTimeout(()=>{const snap={...S};sChain=sChain.then(()=>db.doc("config/settings").set(snap)).catch(()=>toast("Ajustes não sincronizaram",false))},800)}
-function setSync(ok,txt){const p=document.getElementById("sync");p.className="pill"+(ok?" ok":"");p.querySelector("span").textContent=txt}
+function setSync(){}
+/* sinaleira do backup: verde ok · amarelo sugerido (7+ dias com lançamentos novos) · vermelho 21+ dias */
+function bkDot(){const d=document.getElementById("sync");if(!d)return;const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0;
+  const pend=E.length>0&&ch>lb, ref=lb||Math.min(...E.map(e=>+e.created||Date.now())), dias=(Date.now()-ref)/864e5;
+  const st=!pend?"":(lb&&dias<7?"":(dias<21?"y":"r"));
+  d.className="bkdot"+(st?" "+st:"");
+  d.title=st==="r"?"Faz muito tempo sem backup":st==="y"?"Backup sugerido":"Backup em dia";
+  d.onclick=()=>{toast(st==="r"?"Faz "+Math.floor(dias)+" dias sem backup":st==="y"?(lb?"Faz "+Math.floor(dias)+" dias sem backup":"Você ainda não fez backup"):"Backup em dia ✓",!st);
+    if(st){document.querySelector('.tb-row button[data-v="set"]').click();setTimeout(()=>{const b=document.getElementById("bkInfo");if(b)b.scrollIntoView({behavior:"smooth",block:"center"})},350)}}}
 
 /* ---- contas de luz automáticas: contas.enc.json (AES-256-GCM, senha guardada só no aparelho) ---- */
 let CK_ST="";
@@ -1177,7 +1189,7 @@ async function restoreObj(o){if(!o||!Array.isArray(o.entries))throw 0;
   const ids=new Set(E.map(e=>e.id));let n=0;
   for(const e of o.entries){if(e&&e.id&&e.date&&e.type&&!ids.has(e.id)){await addEntry(e);n++}}
   toast(`Backup restaurado ✓ (${n} lançamento${n===1?"":"s"} novo${n===1?"":"s"})`);bkUI()}
-function bkUI(){const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0,el=document.getElementById("bkInfo");
+function bkUI(){bkDot();const lb=+LS("oc_bk")||0,ch=+LS("oc_chg")||0,el=document.getElementById("bkInfo");
   const dias=lb?Math.floor((Date.now()-lb)/864e5):null;
   bkPrep();
   if(el)el.innerHTML=lb?`Último backup: <b>${new Date(lb).toLocaleDateString("pt-BR")}</b> (${dias===0?"hoje":dias===1?"ontem":"há "+dias+" dias"})${ch>lb?" · há lançamentos novos desde então":""}`:"Nenhum backup em arquivo ainda.";
@@ -1247,7 +1259,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611191134";
+const APP_V="202611191140";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
