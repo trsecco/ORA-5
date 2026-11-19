@@ -352,7 +352,7 @@ const DEF={
   inicio:"2027-02-01", odoIni:0, socEnt:null, recOk:0,
   gas:5.89, gasAuto:1, kml:7.8, seguroCiv:2400, ipvaCiv:2400, revCiv:2500, revCivKm:10000, pneuCiv:3000, pneuCivKm:55000, ipcaBase:"2026-11",
   parcela:1200, nParc:75, ct:{preco:165000,civic:71094,cash:0,depOra1:15,depOra:7,depCiv:4}, seguroOra:3400, seguros:[], ipvas:[], faturas:[],
-  kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, ipvaOra:0, revOra:1000, revOraKm:24000, pneuOra:5150, pneuOraKm:45000
+  kmPlan:1000, bat:58.3, medidor:0, tarifa:1.15, kwh100:16.7, perdas:10, contasKey:"", ipvaOra:0, revOra:1000, revOraKm:24000, pneuOra:5150, pneuOraKm:45000
 };
 let S={...DEF}, E=[], db=null, ready=false, GAS=null;
 try{const s=JSON.parse(localStorage.getItem("oc_s")||"null");if(s){S={...DEF,...s};if(s.seguroExtra!=null&&s.seguroOra==null)S.seguroOra=(s.seguroCiv??DEF.seguroCiv)+s.seguroExtra}}catch(e){}
@@ -948,6 +948,28 @@ let sTimer=null,sChain=Promise.resolve();
 function saveSettings(){cache();render();if(!db)return;clearTimeout(sTimer);sTimer=setTimeout(()=>{const snap={...S};sChain=sChain.then(()=>db.doc("config/settings").set(snap)).catch(()=>toast("Ajustes não sincronizaram",false))},800)}
 function setSync(ok,txt){const p=document.getElementById("sync");p.className="pill"+(ok?" ok":"");p.querySelector("span").textContent=txt}
 
+/* ---- contas de luz automáticas: contas.enc.json (AES-256-GCM, senha guardada só no aparelho) ---- */
+let CK_ST="";
+const ub64=t=>Uint8Array.from(atob(t),c=>c.charCodeAt(0));
+async function decContas(e,senha){const sub=crypto.subtle;
+  const base=await sub.importKey("raw",new TextEncoder().encode(senha.trim()),"PBKDF2",false,["deriveKey"]);
+  const k=await sub.deriveKey({name:"PBKDF2",hash:"SHA-256",salt:ub64(e.salt),iterations:e.iter||310000},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+  return JSON.parse(new TextDecoder().decode(await sub.decrypt({name:"AES-GCM",iv:ub64(e.iv)},k,ub64(e.data))))}
+function ckShow(){const el=document.getElementById("ckSt");if(el)el.innerHTML=CK_ST}
+async function loadContas(){
+  try{const r=await fetch("contas.enc.json?t="+Date.now(),{cache:"no-store"});if(!r.ok){CK_ST="Nenhuma conta automática publicada ainda.";return ckShow()}
+    const e=await r.json();
+    if(!S.contasKey){CK_ST="🔒 Cole a senha para importar as contas automáticas.";return ckShow()}
+    let d;try{d=await decContas(e,S.contasKey)}catch(x){CK_ST='<span style="color:var(--red)">Senha incorreta — as contas automáticas não foram importadas.</span>';return ckShow()}
+    let ch=false;S.faturas=S.faturas||[];
+    (d.contas||[]).forEach(c=>{const t=num(c.tarifa)||(num(c.energia)>0&&num(c.kwh)>0?num(c.energia)/num(c.kwh):null);if(!c.ref||!c.de||!c.ate||!(t>0&&t<10))return;
+      const f={id:"m"+c.ref,ref:c.ref,de:c.de,ate:c.ate,tarifa:Math.round(t*10000)/10000,kwh:num(c.kwh)||undefined,valor:num(c.energia)||undefined,src:"email"};
+      const i=S.faturas.findIndex(x=>x.ref===c.ref);
+      if(i<0){S.faturas.push(f);ch=true}else if(S.faturas[i].src==="email"||S.faturas[i].id==="f"+c.ref.replace("-","")){if(JSON.stringify(S.faturas[i])!==JSON.stringify(f)){S.faturas[i]=f;ch=true}}});
+    CK_ST=`✓ ${(d.contas||[]).length} conta${(d.contas||[]).length===1?"":"s"} automática${(d.contas||[]).length===1?"":"s"} · criptografadas no GitHub`;
+    if(ch){saveSettings();if(!document.querySelector("#v-set input:focus"))buildSettings();render()}ckShow()}
+  catch(x){CK_ST="Não foi possível baixar as contas agora.";ckShow()}}
+
 async function initDB(){
   setSync(true,"salvo no iPhone");
   try{
@@ -956,12 +978,7 @@ async function initDB(){
       if(p>0){GAS={preco:p,semana:d.semana||"",fonte:d.fonte||""};const old=S.gas;applyGas();cache();
         if(!document.querySelector("#v-set input:focus"))buildSettings();render();if(old!==S.gas)saveSettings()}}
   }catch(e){}
-  try{const r=await fetch("contas.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();let ch=false;S.faturas=S.faturas||[];
-    (d.contas||[]).forEach(c=>{const t=num(c.tarifa)||(num(c.energia)>0&&num(c.kwh)>0?num(c.energia)/num(c.kwh):null);if(!c.ref||!c.de||!c.ate||!(t>0&&t<10))return;
-      const f={id:"m"+c.ref,ref:c.ref,de:c.de,ate:c.ate,tarifa:Math.round(t*10000)/10000,kwh:num(c.kwh)||undefined,valor:num(c.energia)||undefined,src:"email"};
-      const i=S.faturas.findIndex(x=>x.ref===c.ref);
-      if(i<0){S.faturas.push(f);ch=true}else if(S.faturas[i].src==="email"||S.faturas[i].id==="f"+c.ref.replace("-","")){if(JSON.stringify(S.faturas[i])!==JSON.stringify(f)){S.faturas[i]=f;ch=true}}});
-    if(ch){saveSettings();buildSettings();render()}}}catch(e){}
+  await loadContas();
   try{const r=await fetch("ipca.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d&&d.mensal){IPCA=d;if(!document.querySelector("#v-set input:focus"))buildSettings();render()}}}catch(e){}
   try{const r=await fetch("fipe.json?t="+Date.now(),{cache:"no-store"});if(r.ok){const d=await r.json();if(d.ora&&d.civic){FIPE=d;buildSettings();render()}}}catch(e){}
 }
@@ -1044,7 +1061,10 @@ function buildPeriods(){
     <div class="field"><label>Custo do kWh<small>calculado · pode editar</small></label><input id="fTa" inputmode="decimal" placeholder="0,00"></div>
   </div>
   <div style="display:flex;gap:8px;padding:12px 0"><button class="btn sm" id="fatAdd">+ Adicionar conta</button><button class="btn sm" id="fatCancel" style="display:none">Cancelar</button></div>
-  <div class="sub" style="padding:0 0 12px">Cada recarga em casa usa a conta cujo período de leitura inclui a data dela. Recargas depois da última leitura usam a última tarifa como provisória, até a próxima conta chegar.</div>`;
+  <div class="sub" style="padding:0 0 12px">Cada recarga em casa usa a conta cujo período de leitura inclui a data dela. Recargas depois da última leitura usam a última tarifa como provisória, até a próxima conta chegar.</div>
+  <div style="border-top:1px solid var(--line)"><div class="field"><label>Senha das contas automáticas<small>fica só neste iPhone e no backup</small></label><input id="ckIn" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-…" value="${esc(S.contasKey||"")}"></div>
+  <div class="sub" id="ckSt" style="font-size:12px;padding:0 0 12px">${CK_ST}</div></div>`;
+  {const ci=document.getElementById("ckIn");ci.onchange=()=>{S.contasKey=ci.value.trim().toUpperCase();saveSettings();CK_ST="Verificando…";ckShow();loadContas()}}
   const ff=document.getElementById("fatForm"),add=document.getElementById("fatAdd"),cancel=document.getElementById("fatCancel");
   const calc=()=>{const v=num(document.getElementById("fEn").value),k=num(document.getElementById("fKw").value);if(v>0&&k>0)document.getElementById("fTa").value=fmt(v/k,2)};
   ["fEn","fKw"].forEach(id=>document.getElementById(id).oninput=calc);
@@ -1226,7 +1246,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611180711";
+const APP_V="202611190633";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
