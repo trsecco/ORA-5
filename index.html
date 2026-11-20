@@ -33,13 +33,18 @@ h1.wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0
 .lg-gwm{height:34px;width:auto;display:block;opacity:.9}
 .bkdot{all:unset;cursor:pointer;position:relative;line-height:0;display:block;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .bkdot img{height:36px;width:auto;display:block;opacity:.9;pointer-events:none;-webkit-user-drag:none}
-/* sinaleira: o "!" do logo ORA (oval + ponto) acende em amarelo/vermelho; apagado quando o backup está em dia */
-.bkdot .glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
-.bkdot .glow i{position:absolute;inset:0;-webkit-mask:url(img/ora-bang.png) center/100% 100% no-repeat;mask:url(img/ora-bang.png) center/100% 100% no-repeat;background:var(--lc)}
-.bkdot.y .glow,.bkdot.r .glow{opacity:1;filter:drop-shadow(0 0 2px var(--lc)) drop-shadow(0 0 6px var(--lc));animation:bkp 2.6s ease-in-out infinite}
-.bkdot.y{--lc:#f5c451}.bkdot.r{--lc:#ff5a4a}.bkdot.r .glow{animation-duration:1.6s}
+/* sinaleira (estilo B · retroiluminação): luz POR TRÁS do logo ORA, vazando pelo "!" e em volta da borda; apagada com backup em dia */
+.bkdot img{position:relative;z-index:2}
+.bkdot .back,.bkdot .win{position:absolute;z-index:1;pointer-events:none;opacity:0;transition:opacity .4s}
+.bkdot .back{inset:-45%;background:radial-gradient(closest-side,var(--lc),color-mix(in srgb,var(--lc) 40%,transparent) 55%,transparent 80%);filter:blur(5px)}
+.bkdot .win{inset:0;-webkit-mask:url(img/ora-bang.png) center/100% 100% no-repeat;mask:url(img/ora-bang.png) center/100% 100% no-repeat;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--lc) 60%,#fff),var(--lc) 70%)}
+.bkdot.y,.bkdot.r{--lc:#ffc94d}.bkdot.r{--lc:#ff4a3a}
+.bkdot.y .back,.bkdot.r .back{animation:bkb 2.6s ease-in-out infinite}
+.bkdot.y .win,.bkdot.r .win{animation:bkp 2.6s ease-in-out infinite}
+.bkdot.r .back,.bkdot.r .win{animation-duration:1.6s}
 .bkdot.y img,.bkdot.r img{opacity:1}
-@keyframes bkp{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes bkp{0%,100%{opacity:1}50%{opacity:.72}}
+@keyframes bkb{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.93)}}
 .pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
 .pill.ok i{background:var(--green);box-shadow:0 0 8px var(--green)}
@@ -206,7 +211,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <div class="top">
     <img src="img/gwm.png" alt="GWM" class="lg-gwm">
     <h1 class="wm"><img src="img/ora5-word.png" alt="ORA 5"></h1>
-    <button class="bkdot" id="sync" aria-label="Backup"><img src="img/ora.png" alt="ORA"><span class="glow"><i></i></span></button>
+    <button class="bkdot" id="sync" aria-label="Backup"><span class="back"></span><span class="win"></span><img src="img/ora.png" alt="ORA"></button>
   </div>
 
   <!-- ================= PAINEL ================= -->
@@ -1272,7 +1277,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611201657";
+const APP_V="202611201708";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
