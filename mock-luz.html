@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ORA 5 · estilos de luz</title>
+<style>
+:root{--y:#ffc94d;--r:#ff4a3a}
+*{box-sizing:border-box}body{margin:0;background:#070707;color:#eee;font:14px -apple-system,system-ui,sans-serif;padding:max(18px,env(safe-area-inset-top)) 16px 40px}
+h1{font-size:18px;margin:0 0 4px}p.s{color:#999;margin:0 0 14px;font-size:13px}
+.sw{position:sticky;top:0;z-index:9;background:#070707e8;backdrop-filter:blur(8px);padding:8px 0 10px;display:flex;gap:8px}
+.sw button{flex:1;border:1px solid #333;background:#151515;color:#ddd;border-radius:12px;padding:10px;font-size:14px}
+.sw button.on{border-color:#666;background:#262626;color:#fff}
+.card{background:#111;border:1px solid #222;border-radius:18px;padding:14px;margin:12px 0}
+.card h2{font-size:15px;margin:0 0 2px}.card .d{color:#999;font-size:12.5px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:22px}
+.stage{flex:0 0 auto;width:120px;height:170px;display:flex;align-items:center;justify-content:center;background:radial-gradient(#141414,#0a0a0a);border-radius:14px}
+.hdr{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;color:#777;font-size:11px}
+.hdrbar{width:100%;display:flex;align-items:center;justify-content:flex-end;background:#0c0c0c;border-radius:12px;padding:10px 12px}
+/* logo base */
+.L{position:relative;line-height:0;--c:var(--y)}
+body.red .L{--c:var(--r)}
+.L .logo{position:relative;z-index:2;display:block;height:var(--h);width:auto}
+.L .win,.L .back{position:absolute;inset:0;z-index:1;pointer-events:none}
+.L .win{-webkit-mask:url(img/ora-bang.png) center/100% 100% no-repeat;mask:url(img/ora-bang.png) center/100% 100% no-repeat}
+.big{--h:130px}.small{--h:36px}
+@keyframes br{0%,100%{opacity:1}50%{opacity:.72}}
+@keyframes br2{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(.93)}}
+@keyframes flick{0%,100%{opacity:1}47%{opacity:.75}50%{opacity:.35}53%{opacity:.8}}
+body.red .L *{animation-duration:1.5s!important}
+/* A — LED atrás de vidro fosco */
+.A .win{background:radial-gradient(ellipse 60% 55% at 50% 45%,#fff 0%,var(--c) 45%,color-mix(in srgb,var(--c) 80%,#000) 100%);animation:br 2.6s ease-in-out infinite}
+/* B — Retroiluminação: halo por trás do logo + janela */
+.B .back{inset:-45%;background:radial-gradient(closest-side,var(--c),color-mix(in srgb,var(--c) 40%,transparent) 55%,transparent 80%);filter:blur(5px);animation:br2 2.6s ease-in-out infinite}
+.B .win{background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--c) 60%,#fff),var(--c) 70%);animation:br 2.6s ease-in-out infinite}
+/* C — Brasa: núcleo quente e borda escura (profundidade) */
+.C .win{background:radial-gradient(ellipse 45% 40% at 50% 42%,#fffbe8 0%,var(--c) 50%,color-mix(in srgb,var(--c) 65%,#000) 100%);animation:br 3s ease-in-out infinite}
+.C .back{inset:-12%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c) 40%,transparent),transparent);filter:blur(4px);animation:br 3s ease-in-out infinite}
+/* D — Neon: núcleo claro + bloom forte por trás */
+.D .back{inset:-40%;background:radial-gradient(closest-side,var(--c),transparent 72%);filter:blur(8px);animation:br2 2.2s ease-in-out infinite}
+.D .win{background:radial-gradient(ellipse at 50% 45%,#fff 0%,color-mix(in srgb,var(--c) 70%,#fff) 30%,var(--c) 75%);animation:br 2.2s ease-in-out infinite}
+/* E — Farol (varredura): a luz percorre o ! de cima para baixo */
+.E .win{background:linear-gradient(180deg,color-mix(in srgb,var(--c) 70%,#000) 0%,#fff 45%,var(--c) 55%,color-mix(in srgb,var(--c) 70%,#000) 100%);background-size:100% 300%;animation:sweep 2.4s ease-in-out infinite}
+@keyframes sweep{0%{background-position:0 100%}50%{background-position:0 0}100%{background-position:0 100%}}
+/* F — Discreto: só a janela, cor chapada, respiração lenta */
+.F .win{background:var(--c);animation:br 3.4s ease-in-out infinite}
+.atual .win{background:var(--c)}.atual .glowon{position:absolute;inset:0;z-index:3;filter:drop-shadow(0 0 2px var(--c)) drop-shadow(0 0 6px var(--c));animation:br 2.6s ease-in-out infinite;pointer-events:none}
+.atual .glowon i{position:absolute;inset:0;-webkit-mask:url(img/ora-bang.png) center/100% 100% no-repeat;mask:url(img/ora-bang.png) center/100% 100% no-repeat;background:var(--c)}
+</style></head><body>
+<h1>Estilos de luz da sinaleira</h1>
+<p class="s">Em todos (menos o atual) a luz fica <b>por baixo</b> do logo e aparece pelo "!" vazado. À esquerda, ampliado; à direita, no tamanho real do cabeçalho.</p>
+<div class="sw"><button class="on" data-c="">Amarelo</button><button data-c="red">Vermelho</button></div>
+<div id="list"></div>
+<script>
+const V=[["atual","Atual","Luz pintada por cima do logo, com halo. (referência)"],
+["A","A · LED atrás de vidro fosco","Centro mais claro, borda mais escura, respiração suave. Só pelo “!”."],
+["B","B · Retroiluminação","Uma luz atrás do logo inteiro: vaza pelo “!” e faz um halo em volta da borda."],
+["C","C · Brasa","Núcleo quente quase branco, bordas sombreadas — dá profundidade, como se o “!” fosse fundo."],
+["D","D · Neon","Cor intensa no “!” e um bloom forte por trás, pulsando."],
+["E","E · Farol","Uma faixa de luz percorre o “!” de cima para baixo."],
+["F","F · Discreto","Só a cor por trás do “!”, sem halo, respiração lenta."]];
+const logo=(k,s)=>`<div class="L ${k} ${s}"><div class="back"></div><div class="win"></div><img class="logo" src="img/ora.png">${k==="atual"?'<span class="glowon"><i></i></span>':""}</div>`;
+document.getElementById("list").innerHTML=V.map(([k,t,d])=>`<div class="card"><h2>${t}</h2><div class="d">${d}</div><div class="row"><div class="stage">${logo(k,"big")}</div><div class="hdr"><div class="hdrbar">${logo(k,"small")}</div>tamanho real</div></div></div>`).join("");
+document.querySelectorAll(".sw button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".sw button").forEach(x=>x.classList.toggle("on",x===b));document.body.className=b.dataset.c});
+// no atual, a janela não existe (luz é por cima)
+document.querySelectorAll(".L.atual .win").forEach(w=>w.remove());
+</script></body></html>
