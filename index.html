@@ -30,7 +30,7 @@ body{min-height:100vh;overflow-x:hidden}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;position:relative;min-height:40px}
 .brand{display:flex;align-items:center;gap:11px;opacity:.9}.brand img{height:30px;width:auto;display:block}.brand .b-ora{height:33px}.brand i{width:1px;height:24px;background:rgba(255,255,255,.22)}
 h1.wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;line-height:0;pointer-events:none}h1.wm img{height:23px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(0,0,0,.35))}
-.lg-gwm{height:30px;width:auto;display:block;opacity:.9}
+.lg-gwm{height:34px;width:auto;display:block;opacity:.9}
 .bkdot{all:unset;cursor:pointer;position:relative;line-height:0;display:block;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 .bkdot img{height:36px;width:auto;display:block;opacity:.9;pointer-events:none;-webkit-user-drag:none}
 /* sinaleira: o "!" do logo ORA (oval + ponto) acende em amarelo/vermelho; apagado quando o backup está em dia */
@@ -1272,7 +1272,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611201653";
+const APP_V="202611201657";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
