@@ -31,12 +31,15 @@ body{min-height:100vh;overflow-x:hidden}
 .brand{display:flex;align-items:center;gap:11px;opacity:.9}.brand img{height:30px;width:auto;display:block}.brand .b-ora{height:33px}.brand i{width:1px;height:24px;background:rgba(255,255,255,.22)}
 h1.wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;line-height:0;pointer-events:none}h1.wm img{height:23px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(0,0,0,.35))}
 .lg-gwm{height:30px;width:auto;display:block;opacity:.9}
-.bkdot{all:unset;cursor:pointer;position:relative;line-height:0;display:block}
-.bkdot img{height:36px;width:auto;display:block;opacity:.9}
-/* sinaleira no "ponto" do logo ORA: apagada quando o backup está em dia */
-.bkdot i{position:absolute;left:49.5%;top:79.7%;width:27%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:transparent;transition:background .3s,box-shadow .3s}
-.bkdot.y i{background:#f2c14e;box-shadow:0 0 6px 1px #f2c14e,0 0 14px #f2c14e}.bkdot.r i{background:#ff5a4a;box-shadow:0 0 6px 1px #ff5a4a,0 0 16px #ff5a4a;animation:bkp 2s ease-in-out infinite}
-@keyframes bkp{50%{opacity:.45}}
+.bkdot{all:unset;cursor:pointer;position:relative;line-height:0;display:block;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+.bkdot img{height:36px;width:auto;display:block;opacity:.9;pointer-events:none;-webkit-user-drag:none}
+/* sinaleira: o "!" do logo ORA (oval + ponto) acende em amarelo/vermelho; apagado quando o backup está em dia */
+.bkdot .glow{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+.bkdot .glow i{position:absolute;inset:0;-webkit-mask:url(img/ora-bang.png) center/100% 100% no-repeat;mask:url(img/ora-bang.png) center/100% 100% no-repeat;background:var(--lc)}
+.bkdot.y .glow,.bkdot.r .glow{opacity:1;filter:drop-shadow(0 0 2px var(--lc)) drop-shadow(0 0 6px var(--lc));animation:bkp 2.6s ease-in-out infinite}
+.bkdot.y{--lc:#f5c451}.bkdot.r{--lc:#ff5a4a}.bkdot.r .glow{animation-duration:1.6s}
+.bkdot.y img,.bkdot.r img{opacity:1}
+@keyframes bkp{0%,100%{opacity:1}50%{opacity:.55}}
 .pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
 .pill.ok i{background:var(--green);box-shadow:0 0 8px var(--green)}
@@ -203,7 +206,7 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
   <div class="top">
     <img src="img/gwm.png" alt="GWM" class="lg-gwm">
     <h1 class="wm"><img src="img/ora5-word.png" alt="ORA 5"></h1>
-    <button class="bkdot" id="sync" aria-label="Backup"><img src="img/ora.png" alt="ORA"><i></i></button>
+    <button class="bkdot" id="sync" aria-label="Backup"><img src="img/ora.png" alt="ORA"><span class="glow"><i></i></span></button>
   </div>
 
   <!-- ================= PAINEL ================= -->
@@ -961,7 +964,14 @@ function bkDot(){const d=document.getElementById("sync");if(!d)return;const lb=+
   const st=!pend?"":(lb&&dias<7?"":(dias<21?"y":"r"));
   d.className="bkdot"+(st?" "+st:"");
   d.title=st==="r"?"Faz muito tempo sem backup":st==="y"?"Backup sugerido":"Backup em dia";
-  d.onclick=()=>{toast(st==="r"?"Faz "+Math.floor(dias)+" dias sem backup":st==="y"?(lb?"Faz "+Math.floor(dias)+" dias sem backup":"Você ainda não fez backup"):"Backup em dia ✓",!st);
+  if(!d.dataset.lp){d.dataset.lp=1;let t=null;
+    const end=()=>{clearTimeout(t)};
+    d.addEventListener("pointerdown",()=>{t=setTimeout(()=>{d.dataset.demo=1;const seq=[["y","Teste: backup sugerido"],["r","Teste: muito tempo sem backup"]];let k=0;
+      const step=()=>{if(k<seq.length){d.className="bkdot "+seq[k][0];toast(seq[k][1],seq[k][0]==="y");k++;setTimeout(step,3500)}else{delete d.dataset.demo;bkDot()}};step()},650)});
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>d.addEventListener(ev,end));
+    d.addEventListener("contextmenu",e=>e.preventDefault())}
+  if(d.dataset.demo)return;
+  d.onclick=()=>{if(d.dataset.demo)return;toast(st==="r"?"Faz "+Math.floor(dias)+" dias sem backup":st==="y"?(lb?"Faz "+Math.floor(dias)+" dias sem backup":"Você ainda não fez backup"):"Backup em dia ✓",!st);
     if(st){document.querySelector('.tb-row button[data-v="set"]').click();setTimeout(()=>{const b=document.getElementById("bkInfo");if(b)b.scrollIntoView({behavior:"smooth",block:"center"})},350)}}}
 
 /* ---- contas de luz automáticas: contas.enc.json (AES-256-GCM, senha guardada só no aparelho) ---- */
@@ -1262,7 +1272,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611201648";
+const APP_V="202611201653";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
