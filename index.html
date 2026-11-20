@@ -30,9 +30,12 @@ body{min-height:100vh;overflow-x:hidden}
 .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;position:relative;min-height:40px}
 .brand{display:flex;align-items:center;gap:11px;opacity:.9}.brand img{height:30px;width:auto;display:block}.brand .b-ora{height:33px}.brand i{width:1px;height:24px;background:rgba(255,255,255,.22)}
 h1.wm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;line-height:0;pointer-events:none}h1.wm img{height:23px;width:auto;display:block;filter:drop-shadow(0 2px 10px rgba(0,0,0,.35))}
-.bkdot{all:unset;cursor:pointer;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:50%}
-.bkdot i{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);transition:background .3s,box-shadow .3s}
-.bkdot.y i{background:#e8b84a;box-shadow:0 0 9px #e8b84a}.bkdot.r i{background:var(--red);box-shadow:0 0 10px var(--red);animation:bkp 2s ease-in-out infinite}
+.lg-gwm{height:30px;width:auto;display:block;opacity:.9}
+.bkdot{all:unset;cursor:pointer;position:relative;line-height:0;display:block}
+.bkdot img{height:36px;width:auto;display:block;opacity:.9}
+/* sinaleira no "ponto" do logo ORA: apagada quando o backup está em dia */
+.bkdot i{position:absolute;left:49.5%;top:79.7%;width:27%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:transparent;transition:background .3s,box-shadow .3s}
+.bkdot.y i{background:#f2c14e;box-shadow:0 0 6px 1px #f2c14e,0 0 14px #f2c14e}.bkdot.r i{background:#ff5a4a;box-shadow:0 0 6px 1px #ff5a4a,0 0 16px #ff5a4a;animation:bkp 2s ease-in-out infinite}
 @keyframes bkp{50%{opacity:.45}}
 .pill{font-size:11.5px;padding:7px 11px;border-radius:99px;background:rgba(255,255,255,.055);border:1px solid var(--line);color:var(--tx2);display:flex;align-items:center;gap:6px}
 .pill i{width:7px;height:7px;border-radius:50%;background:var(--tx3)}
@@ -198,9 +201,9 @@ textarea{width:100%;min-height:90px;background:rgba(255,255,255,.06);border:1px 
 <div class="bgfx"></div>
 <div class="wrap">
   <div class="top">
-    <div class="brand"><img src="img/gwm.png" alt="GWM"><i></i><img src="img/ora.png" alt="ORA" class="b-ora"></div>
+    <img src="img/gwm.png" alt="GWM" class="lg-gwm">
     <h1 class="wm"><img src="img/ora5-word.png" alt="ORA 5"></h1>
-    <button class="bkdot" id="sync" aria-label="Backup"><i></i></button>
+    <button class="bkdot" id="sync" aria-label="Backup"><img src="img/ora.png" alt="ORA"><i></i></button>
   </div>
 
   <!-- ================= PAINEL ================= -->
@@ -1259,7 +1262,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611191534";
+const APP_V="202611201648";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
