@@ -56,7 +56,7 @@ h1 span{color:var(--orange)}
 .lbl{font-size:12px;color:var(--tx2);font-weight:500}
 .big{font-size:40px;font-weight:800;letter-spacing:-1.2px;margin:6px 0 4px}
 /* valor do resultado com a tipografia do nome do carro (Michroma ≈ letreiro ORA 5) */
-#hVal{font-family:Michroma,Inter,sans-serif;font-weight:400;letter-spacing:.5px;font-size:30px;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums;margin:10px 0 6px}
+#hVal{font-family:Michroma,Inter,sans-serif;font-weight:400;letter-spacing:0;font-size:31px;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums;margin:10px 0 6px;-webkit-text-stroke:.07em currentColor;paint-order:stroke fill;transform:scaleX(.86);transform-origin:left center;width:fit-content}
 .sub{font-size:13px;color:var(--tx2);line-height:1.45}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px}
 .chip.g{background:rgba(92,184,138,.14);color:var(--green)} .chip.r{background:rgba(224,122,110,.14);color:var(--red)} .chip.v{background:rgba(255,255,255,.07);color:var(--tx2)}
@@ -1269,7 +1269,7 @@ window.addEventListener("resize",tbShape);
   ["pointerup","pointercancel","pointerleave"].forEach(ev=>nav.addEventListener(ev,()=>nav.classList.remove("press")));})();
 /* valor do resultado: conta de 0 até o valor ao voltar para a tela inicial */
 const HV={v:0,f:x=>brl(x),raf:0};
-function hvFit(el){el.style.fontSize="";const w=el.parentElement.clientWidth-4;if(w>0&&el.scrollWidth>w)el.style.fontSize=Math.max(18,30*w/el.scrollWidth)+"px"}
+function hvFit(el){el.style.fontSize="";const w=el.parentElement.clientWidth-4;const sw=el.scrollWidth*.86;if(w>0&&sw>w)el.style.fontSize=Math.max(18,31*w/sw)+"px"}
 function setHV(v,f){HV.v=v;HV.f=f;if(!HV.raf){const el=document.getElementById("hVal");el.textContent=f(v);hvFit(el)}}
 function animHV(){const el=document.getElementById("hVal");cancelAnimationFrame(HV.raf);HV.raf=0;
   if(!HV.v||Math.abs(HV.v)<1){el.textContent=HV.f(HV.v);return hvFit(el)}
@@ -1291,7 +1291,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render();animHV()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611201715";
+const APP_V="202611201718";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
