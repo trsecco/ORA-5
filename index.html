@@ -1279,22 +1279,22 @@ function rp(pts,closed){ // polilinha com cantos arredondados
     for(let i=1;i<=n;i++){const c=P(i),a=cut(c,P(i-1),RC),b=cut(c,P(i+1),RC);d+=`L${a[0]} ${a[1]}Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`}
     return d+"Z"}
   d+=`M${pts[0][0]} ${pts[0][1]}`;
-  for(let i=1;i<n-1;i++){const c=pts[i],a=cut(c,pts[i-1],RC),b=cut(c,pts[i+1],RC);d+=`L${a[0]} ${a[1]}Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`}
+  for(let i=1;i<n-1;i++){const c=pts[i],r=c[2]??RC;if(!r){d+=`L${c[0]} ${c[1]}`;continue}const a=cut(c,pts[i-1],r),b=cut(c,pts[i+1],r);d+=`L${a[0]} ${a[1]}Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`}
   return d+`L${pts[n-1][0]} ${pts[n-1][1]}`}
 const T=h,B=H-h,M=50;
 function G(w){const L=h,R=w-h;return{L,R}}
 const GL={
  "0":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],1]},
- "1":w=>{const x=w-h;return[[[x-30,T],[x,T],[x,B]]]},
+ "1":w=>{const x=w-h;return[[[x-30,T],[x,T],[x,B+h]]]},
  "2":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,M],[L,M],[L,B],[R,B]]]},
  "3":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],[[L+18,M],[R,M]]]},
- "4":w=>{const{L,R}=G(w);return[[[L,T],[L,M],[R,M]],[[R,T],[R,B]]]},
+ "4":w=>{const{L,R}=G(w);return[[[L,T-h],[L,M],[R,M]],[[R,T-h],[R,B+h]]]},
  "5":w=>{const{L,R}=G(w);return[[[R,T],[L,T],[L,M],[R,M],[R,B],[L,B]]]},
  "6":w=>{const{L,R}=G(w);return[[[R,T],[L,T],[L,B],[R,B],[R,M],[L,M]]]},
- "7":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B]]]},
+ "7":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B+h]]]},
  "8":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],1,[[L,M],[R,M]]]},
  "9":w=>{const{L,R}=G(w);return[[[R,M],[L,M],[L,T],[R,T],[R,B],[L,B]]]},
- "R":w=>{const{L,R}=G(w);return[[[L,B],[L,T],[R,T],[R,M],[L,M]],[[w*0.5,M],[R,B]]]},
+ "R":w=>{const{L,R}=G(w);return[[[L,B+h],[L,T,0],[R,T],[R,M],[L+ST+7,M]],[[w*0.52,M],[R,B]]]},
  "$":w=>{const{L,R}=G(w);return[[[R,T+8],[L,T+8],[L,M],[R,M],[R,B-8],[L,B-8]],[[w/2,-4],[w/2,H+4]]]},
  "+":w=>[[[h,M],[w-h,M]],[[w/2,M-28],[w/2,M+28]]],
  "-":w=>[[[h,M],[w-h,M]]],
@@ -1304,9 +1304,9 @@ const GAP=16;
 function oraSVG(txt,px){txt=String(txt).replace(/[\u00a0\u202f]/g," ").replace(/\u2212/g,"-");let x=0,out="";
   for(const ch of txt){const w=WD[ch]??60;
     if(ch==="."||ch===","){out+=`<rect x="${x}" y="${B-h}" width="${ST}" height="${ST}" rx="3"/>`;if(ch===",")out+=`<path d="M${x+ST} ${B}L${x+ST-6} ${B+16}" stroke-width="${ST*0.6}" fill="none"/>`;}
-    else if(GL[ch]){const g=GL[ch](w);let i=0;while(i<g.length){const pts=g[i],cl=g[i+1]===1;out+=`<path d="${rp(pts.map(p=>[p[0]+x,p[1]]),cl)}"/>`;i+=cl?2:1}}
+    else if(GL[ch]){const g=GL[ch](w);let i=0;while(i<g.length){const pts=g[i],cl=g[i+1]===1;out+=`<path d="${rp(pts.map(p=>[p[0]+x,p[1],p[2]]),cl)}"/>`;i+=cl?2:1}}
     x+=w+GAP}
-  const W=x-GAP;return`<svg viewBox="0 -6 ${W} ${H+24}" height="${px*(H+24)/H}" width="${px*W/H*(H/(H))}" style="overflow:visible;display:block" fill="none" stroke="currentColor" stroke-width="${ST}" stroke-linejoin="round" stroke-linecap="butt" aria-hidden="true"><g>${out.replace(/<rect /g,'<rect fill="currentColor" stroke="none" ')}</g></svg>`}
+  const W=x-GAP;return`<svg viewBox="0 -6 ${W} ${H+24}" height="${px*(H+24)/H}" width="${px*W/H*(H/(H))}" style="overflow:visible;display:block" fill="none" stroke="currentColor" stroke-width="${ST}" stroke-linejoin="miter" stroke-linecap="butt" aria-hidden="true"><g>${out.replace(/<rect /g,'<rect fill="currentColor" stroke="none" ')}</g></svg>`}
 
 
 const HV={v:0,f:x=>brl(x),raf:0,px:32};
@@ -1334,7 +1334,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render();animHV()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611202156";
+const APP_V="202611202158";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
