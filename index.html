@@ -13,7 +13,7 @@
 <link rel="icon" href="icon.png?v=2">
 <title>ORA 5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Michroma&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#141413; --card:#1f1e1d; --card2:#262624; --line:#2e2d2a; --line2:#3a3936;
@@ -56,7 +56,7 @@ h1 span{color:var(--orange)}
 .lbl{font-size:12px;color:var(--tx2);font-weight:500}
 .big{font-size:40px;font-weight:800;letter-spacing:-1.2px;margin:6px 0 4px}
 /* valor do resultado com a tipografia do nome do carro (Michroma ≈ letreiro ORA 5) */
-#hVal{font-family:Michroma,Inter,sans-serif;font-weight:400;letter-spacing:0;font-size:31px;line-height:1.25;white-space:nowrap;font-variant-numeric:tabular-nums;margin:10px 0 6px;-webkit-text-stroke:.07em currentColor;paint-order:stroke fill;transform:scaleX(.86);transform-origin:left center;width:fit-content}
+#hVal{margin:14px 0 10px;line-height:0;min-height:30px}
 .sub{font-size:13px;color:var(--tx2);line-height:1.45}
 .chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:99px}
 .chip.g{background:rgba(92,184,138,.14);color:var(--green)} .chip.r{background:rgba(224,122,110,.14);color:var(--red)} .chip.v{background:rgba(255,255,255,.07);color:var(--tx2)}
@@ -1268,15 +1268,58 @@ window.addEventListener("resize",tbShape);
   nav.addEventListener("pointerdown",e=>{const b=e.target.closest("button[data-v]");if(b&&b.classList.contains("on"))nav.classList.add("press")});
   ["pointerup","pointercancel","pointerleave"].forEach(ev=>nav.addEventListener(ev,()=>nav.classList.remove("press")));})();
 /* valor do resultado: conta de 0 até o valor ao voltar para a tela inicial */
-const HV={v:0,f:x=>brl(x),raf:0};
-function hvFit(el){el.style.fontSize="";const w=el.parentElement.clientWidth-4;const sw=el.scrollWidth*.86;if(w>0&&sw>w)el.style.fontSize=Math.max(18,31*w/sw)+"px"}
-function setHV(v,f){HV.v=v;HV.f=f;if(!HV.raf){const el=document.getElementById("hVal");el.textContent=f(v);hvFit(el)}}
+/* números do resultado desenhados na "fonte ORA" (traços geométricos no estilo do letreiro) */
+// Fonte "ORA" desenhada como traços: cada glifo é uma lista de polilinhas (centro do traço) num quadro de altura 100.
+const ST=15, H=100, h=ST/2, RC=13;   // espessura, altura, raio de canto (linha central)
+function rp(pts,closed){ // polilinha com cantos arredondados
+  const n=pts.length; let d="";
+  const P=i=>pts[(i+n)%n];
+  const cut=(a,b,r)=>{const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy),k=Math.min(r,L/2)/L;return[a[0]+dx*k,a[1]+dy*k]};
+  if(closed){const s=cut(P(0),P(1),RC);d+=`M${s[0]} ${s[1]}`;
+    for(let i=1;i<=n;i++){const c=P(i),a=cut(c,P(i-1),RC),b=cut(c,P(i+1),RC);d+=`L${a[0]} ${a[1]}Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`}
+    return d+"Z"}
+  d+=`M${pts[0][0]} ${pts[0][1]}`;
+  for(let i=1;i<n-1;i++){const c=pts[i],a=cut(c,pts[i-1],RC),b=cut(c,pts[i+1],RC);d+=`L${a[0]} ${a[1]}Q${c[0]} ${c[1]} ${b[0]} ${b[1]}`}
+  return d+`L${pts[n-1][0]} ${pts[n-1][1]}`}
+const T=h,B=H-h,M=50;
+function G(w){const L=h,R=w-h;return{L,R}}
+const GL={
+ "0":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],1]},
+ "1":w=>{const x=w-h;return[[[x-30,T],[x,T],[x,B]]]},
+ "2":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,M],[L,M],[L,B],[R,B]]]},
+ "3":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],[[L+18,M],[R,M]]]},
+ "4":w=>{const{L,R}=G(w);return[[[L,T],[L,M],[R,M]],[[R,T],[R,B]]]},
+ "5":w=>{const{L,R}=G(w);return[[[R,T],[L,T],[L,M],[R,M],[R,B],[L,B]]]},
+ "6":w=>{const{L,R}=G(w);return[[[R,T],[L,T],[L,B],[R,B],[R,M],[L,M]]]},
+ "7":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B]]]},
+ "8":w=>{const{L,R}=G(w);return[[[L,T],[R,T],[R,B],[L,B]],1,[[L,M],[R,M]]]},
+ "9":w=>{const{L,R}=G(w);return[[[R,M],[L,M],[L,T],[R,T],[R,B],[L,B]]]},
+ "R":w=>{const{L,R}=G(w);return[[[L,B],[L,T],[R,T],[R,M],[L,M]],[[w*0.5,M],[R,B]]]},
+ "$":w=>{const{L,R}=G(w);return[[[R,T+8],[L,T+8],[L,M],[R,M],[R,B-8],[L,B-8]],[[w/2,-4],[w/2,H+4]]]},
+ "+":w=>[[[h,M],[w-h,M]],[[w/2,M-28],[w/2,M+28]]],
+ "-":w=>[[[h,M],[w-h,M]]],
+};
+const WD={"0":96,"1":54,"2":92,"3":92,"4":92,"5":92,"6":92,"7":86,"8":92,"9":92,"R":94,"$":74,"+":66,"-":50,".":ST,",":ST," ":34};
+const GAP=16;
+function oraSVG(txt,px){txt=String(txt).replace(/[\u00a0\u202f]/g," ").replace(/\u2212/g,"-");let x=0,out="";
+  for(const ch of txt){const w=WD[ch]??60;
+    if(ch==="."||ch===","){out+=`<rect x="${x}" y="${B-h}" width="${ST}" height="${ST}" rx="3"/>`;if(ch===",")out+=`<path d="M${x+ST} ${B}L${x+ST-6} ${B+16}" stroke-width="${ST*0.6}" fill="none"/>`;}
+    else if(GL[ch]){const g=GL[ch](w);let i=0;while(i<g.length){const pts=g[i],cl=g[i+1]===1;out+=`<path d="${rp(pts.map(p=>[p[0]+x,p[1]]),cl)}"/>`;i+=cl?2:1}}
+    x+=w+GAP}
+  const W=x-GAP;return`<svg viewBox="0 -6 ${W} ${H+24}" height="${px*(H+24)/H}" width="${px*W/H*(H/(H))}" style="overflow:visible;display:block" fill="none" stroke="currentColor" stroke-width="${ST}" stroke-linejoin="round" stroke-linecap="butt" aria-hidden="true"><g>${out.replace(/<rect /g,'<rect fill="currentColor" stroke="none" ')}</g></svg>`}
+
+
+const HV={v:0,f:x=>brl(x),raf:0,px:32};
+function hvDraw(el,t){el.innerHTML=oraSVG(t,HV.px);el.setAttribute("aria-label",t)}
+function hvFit(el,t){HV.px=27;hvDraw(el,t);const w=el.clientWidth-2,sv=el.querySelector("svg"),sw=sv?+sv.getAttribute("width"):0;
+  if(w>0&&sw>w){HV.px=Math.max(16,27*w/sw);hvDraw(el,t)}}
+function setHV(v,f){HV.v=v;HV.f=f;if(!HV.raf)hvFit(document.getElementById("hVal"),f(v))}
 function animHV(){const el=document.getElementById("hVal");cancelAnimationFrame(HV.raf);HV.raf=0;
-  if(!HV.v||Math.abs(HV.v)<1){el.textContent=HV.f(HV.v);return hvFit(el)}
-  el.textContent=HV.f(HV.v);hvFit(el);const fs=el.style.fontSize;el.textContent=HV.f(0);
+  hvFit(el,HV.f(HV.v)); if(!HV.v||Math.abs(HV.v)<1)return;
+  hvDraw(el,HV.f(0));
   const t0=performance.now(),dur=Math.min(1400,700+Math.log10(Math.abs(HV.v)+1)*150);
-  const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=HV.f(HV.v*e);el.style.fontSize=fs;
-    if(k<1)HV.raf=requestAnimationFrame(step);else{HV.raf=0;el.textContent=HV.f(HV.v);hvFit(el)}};
+  const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);hvDraw(el,HV.f(HV.v*e));
+    if(k<1)HV.raf=requestAnimationFrame(step);else{HV.raf=0;hvFit(el,HV.f(HV.v))}};
   HV.raf=requestAnimationFrame(step)}
 document.querySelectorAll(".tb-row button[data-v]").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tb-row button[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");
@@ -1291,7 +1334,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render();animHV()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611201718";
+const APP_V="202611202156";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
