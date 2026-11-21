@@ -1284,7 +1284,7 @@ function rp(pts,closed){
   return d+`L${pts[n-1][0]} ${pts[n-1][1]}`}
 const T=h,B=H-h,M=50;
 function G(w){const L=h,R=w-h;return{L,R}}
-const RO=30; // raio grande (estilo do "O")
+const RO=38; // raio grande (estilo do "O")
 const GL={
  "0":w=>{const{L,R}=G(w);return[[[L,T,RO],[R,T,RO],[R,B,RO],[L,B,RO]],1]},
  "1":w=>{const x=w-h;return[[[x-26,T],[x,T,0],[x,B+h]]]},
@@ -1301,8 +1301,8 @@ const GL={
  "+":w=>[[[0,M],[w,M]],[[w/2,M-w/2],[w/2,M+w/2]]],
  "-":w=>[[[0,M],[w,M]]],
 };
-const WD={"0":118,"1":52,"2":92,"3":92,"4":96,"5":92,"6":92,"7":88,"8":96,"9":92,"R":122,"$":80,"+":56,"-":44,".":ST,",":ST," ":46};
-const GAP=26;
+const WD={"0":145,"1":62,"2":122,"3":122,"4":126,"5":122,"6":122,"7":118,"8":126,"9":122,"R":130,"$":104,"+":64,"-":52,".":ST,",":ST," ":50};
+const GAP=28;
 function oraSVG(txt,px){txt=String(txt).replace(/[\u00a0\u202f]/g," ").replace(/\u2212/g,"-");let x=0,out="";
   for(const ch of txt){const w=WD[ch]??60;
     if(ch==="."||ch===","){out+=`<rect x="${x}" y="${B-h}" width="${ST}" height="${ST}" rx="3"/>`;if(ch===",")out+=`<path d="M${x+ST} ${B}L${x+ST-6} ${B+16}" stroke-width="${ST*0.6}" fill="none"/>`;}
@@ -1336,7 +1336,7 @@ mkSeg(document.getElementById("patSeg"),t=>{try{localStorage.setItem("oc_pat",t)
 mkSeg(document.getElementById("heroSeg"),t=>{try{localStorage.setItem("oc_hero",t)}catch(e){}render();animHV()});
 mkSeg(document.getElementById("effSeg"),t=>{EFF.d=+t;drawEff()});mkSeg(document.getElementById("effY"),t=>{EFF.y=t;drawEff()});
 /* ======================= atualização automática ======================= */
-const APP_V="202611202201";
+const APP_V="202611202204";
 async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
   if(d.v&&d.v!==APP_V){const k="oc_upd_"+d.v;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,1);location.replace(location.pathname+"?v="+d.v)}}catch(e){}}
 checkUpdate();document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")checkUpdate()});
